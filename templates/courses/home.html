@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container text-center mt-5">
+    <h3>Доступные курсы:</h3>
+    {% for course in courses %}
+    <div class="card" style="width: 18rem;">
+        <div class="card-body">
+            <h5 class="card-title">{{ course.title }}</h5>
+            <h6 class="card-subtitle mb-2 text-muted">{{ course.category.title }}</h6>
+            <p class="card-text">{{ course.description }}</p>
+            <a href="#" class="card-link">Card link</a>
+            <a href="#" class="card-link">Another link</a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+<div class="d-flex justify-content-end">
+ {% if messages %}
+     {% for message in messages %}
+         <div class="alert alert-success" role="alert">
+             {{ message|safe }}
+         </div>
+     {% endfor %}
+ {% endif %}
+</div>
+
+{% endblock %}

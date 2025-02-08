@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+<div class="container mt-5 col-md-3">
+    <form method="post">
+        <div class="row text-center">
+            <h4>Регистрация</h4>
+        </div>
+        {% csrf_token %}
+
+        {% for field in form %}
+            {{ field.label }}
+            <div class="mt-1 mb-2">
+                {{ field }}
+            </div>
+        {% endfor %}
+
+        <div class="text-center mt-4">
+            <input class='btn btn-primary' type="submit" value="Сохранить">
+        </div>
+    </form>
+</div>
+
+{% endblock %}

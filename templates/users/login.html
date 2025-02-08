@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+<div class="container mt-5 col-md-3">
+
+     {% if messages %}
+         {% for message in messages %}
+             <div class="text-center alert alert-{{ message.tags }}">
+                 {{ message|safe }}
+             </div>
+         {% endfor %}
+     {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="row text-center">
+            <h4>Авторизация</h4>
+        </div>
+
+        <div class="mb-3">
+            {{ form.as_p }}
+        </div>
+
+        <div class="text-center mt-5">
+            <input class='btn btn-primary' type="submit" href="{% url 'users:login' %}" value="Продолжить">
+        </div>
+    </form>
+
+    <div class="text-center mt-5">
+        <a class="btn btn-secondary" href="{% url 'users:registration' %}" role="button">Зарегистрироваться</a>
+    </div>
+
+  </div>
+{% endblock %}

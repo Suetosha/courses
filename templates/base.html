@@ -1,0 +1,44 @@
+{% load static %}
+
+<head>
+    <meta charset="utf-8">
+    <title>{{ title }}</title>
+    <link href="{% static 'main/css/bootstrap.min.css' %}" rel="stylesheet" />
+</head>
+
+<body>
+    <nav class="py-2 bg-light border-bottom">
+        <div class="container d-flex flex-wrap">
+          <ul class="nav me-auto">
+              <li class="nav-item"><a href="{% url 'courses:home' %}" class="nav-link link-dark px-2 active">Курсы</a></li>
+          </ul>
+        
+          {% if request.user.is_authenticated %}
+              
+            <ul class="nav">
+                <li class="nav-item">
+                    <a href="{% url 'users:profile' %}" class="nav-link link-dark px-2 active">Профиль</a>
+                </li>
+ 
+                <li class="nav-item">
+                    <form method="post" action="{% url 'users:logout' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="nav-link link-dark px-2 active">Выйти</button>
+                    </form>
+                </li>
+            </ul>
+              
+          {% else %}
+              
+              <ul class="nav">
+                <li class="nav-item"><a href="{% url 'users:login' %}" class="nav-link link-dark px-2 active">Вход</a></li>
+                <li class="nav-item"><a href="{% url 'users:registration' %}" class="nav-link link-dark px-2 active">Регистрация</a></li>
+              </ul>
+              
+          {% endif %}
+        </div>
+    </nav>
+
+    {% block content %}
+    {% endblock %}
+</body>
