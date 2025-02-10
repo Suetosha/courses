@@ -36,7 +36,7 @@ class UserRegistrationForm(UserCreationForm):
     last_name = forms.CharField(label='Фамилия', widget=forms.TextInput(attrs={
         'class': "form-control", 'placeholder': "Введите фамилию"}))
 
-    group_number = forms.CharField(label='Номер группы', widget=forms.TextInput(attrs={
+    group_number = forms.CharField(label='Номер группы', required=False, widget=forms.TextInput(attrs={
         'class': "form-control", 'placeholder': "Введите номер группы"
     }))
 

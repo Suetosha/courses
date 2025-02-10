@@ -1,8 +1,10 @@
 from django.db import models
 from courses_apps.users.models import User
 
+
 class Category(models.Model):
     name = models.CharField(max_length=50)
+
 
 class Course(models.Model):
     STATUS_CHOICES = [
@@ -20,18 +22,21 @@ class Subscription(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
 
 
+
 class Chapter(models.Model):
     title = models.CharField(max_length=100, null=False)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
 
+
 class Content(models.Model):
-    text = models.TextField()
-    video = models.CharField(max_length=100)
-    files = models.CharField(max_length=100)
+    text = models.TextField(null=True)
+    video = models.CharField(max_length=100, null=True)
+    files = models.CharField(max_length=100, null=True)
     chapter = models.OneToOneField(Chapter, on_delete=models.CASCADE)
+
 
 class Test(models.Model):
     question = models.TextField(null=False)
-    answer_options = models.TextField()
+    answer_options = models.TextField(null=True)
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE)
     correct_answer = models.TextField(null=False)

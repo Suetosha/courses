@@ -1,19 +1,42 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<h3 class="d-flex justify-content-center mt-3">Доступные курсы:</h3>
+    
+<form method="GET" class="d-flex flex-wrap justify-content-center mt-3">
+    <input type="text" name="query" 
+           class="form-control w-25 mb-2" 
+           placeholder="Введите название курса" 
+           value="{{ request.GET.q }}"
+    >
 
-<div class="container text-center mt-5">
-    <h3>Доступные курсы:</h3>
+    <select name="category" class="form-select w-25 mx-2 mb-2">
+        <option value="">Все категории</option>
+        {% for category in categories %}
+        <option value="{{ category.id }}" 
+                {% if request.GET.category == category.id|slugify %}
+                selected
+                {% endif %}>
+            {{ category.name }}
+        </option>
+        {% endfor %}
+    </select>            
+
+    <button type="submit" class="btn btn-primary ms-2">Найти</button>
+</form>
+
+<div class="d-flex flex-wrap justify-content-center gap-3 mt-4">
     {% for course in courses %}
     <div class="card" style="width: 18rem;">
         <div class="card-body">
             <h5 class="card-title">{{ course.title }}</h5>
             <h6 class="card-subtitle mb-2 text-muted">{{ course.category.title }}</h6>
             <p class="card-text">{{ course.description }}</p>
-            <a href="#" class="card-link">Card link</a>
-            <a href="#" class="card-link">Another link</a>
+            <a href="{% url 'courses:course' course.id %}" class="card-link">Зайти в курс</a>
         </div>
     </div>
+    {% empty %}
+    <p class="mt-3">Курсы не найдены.</p>
     {% endfor %}
 </div>
 {% endblock %}

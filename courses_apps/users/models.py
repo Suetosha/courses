@@ -17,3 +17,4 @@ class User(AbstractUser):
     completed_tests = ArrayField(models.IntegerField(), default=list)
     group_number = models.CharField(max_length=50)
 
+
