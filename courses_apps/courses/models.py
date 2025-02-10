@@ -30,8 +30,8 @@ class Chapter(models.Model):
 
 class Content(models.Model):
     text = models.TextField(null=True)
-    video = models.CharField(max_length=100, null=True)
-    files = models.CharField(max_length=100, null=True)
+    video = models.FileField(upload_to='video/', null=True, blank=True)
+    files = models.FileField(upload_to='pdf_files/', null=True, blank=True)
     chapter = models.OneToOneField(Chapter, on_delete=models.CASCADE)
 
 

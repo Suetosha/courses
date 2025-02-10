@@ -4,7 +4,7 @@ from django.shortcuts import redirect
 from django.views.generic import TemplateView
 
 from courses_apps.courses.forms import AnswerForm
-from courses_apps.courses.models import Course, Category, Chapter, Content, Test
+from courses_apps.courses.models import Course, Category, Chapter, Content, Test, Subscription
 from courses_apps.utils.mixins import TitleMixin
 
 
@@ -39,6 +39,11 @@ class CourseTemplateView(TitleMixin, TemplateView):
         context = super(CourseTemplateView, self).get_context_data(*args, **kwargs)
 
         chapters = list(Chapter.objects.filter(course_id=kwargs["pk"]).order_by("id"))
+        course = Course.objects.get(pk=kwargs["pk"])
+
+        # Оформляем подписку юзера на данный курс
+        if not Subscription.objects.filter(user=request.user, course=course).exists():
+            Subscription.objects.create(user=request.user, course=course)
 
         for chapter in chapters:
             tests = Test.objects.filter(chapter=chapter)
@@ -60,7 +65,7 @@ class CourseTemplateView(TitleMixin, TemplateView):
             # Текущая глава доступна, если предыдущая полностью пройдена
             current_chapter.is_accessible = prev_completed_count == prev_tests.count()
 
-
+        context['course'] = course
         context['chapters'] = chapters
         return self.render_to_response(context)
 
@@ -73,15 +78,24 @@ class ChapterTemplateView(TitleMixin, TemplateView):
     def get(self, request, *args, **kwargs):
         context = super(ChapterTemplateView, self).get_context_data(*args, **kwargs)
         chapter = Chapter.objects.get(id=kwargs["pk"])
+
         try:
             content = Content.objects.get(chapter_id=kwargs["pk"])
+            if content.text:
+                context['text'] = content.text
+
+            if content.video:
+                print(content.video)
+                context['video'] = content.video
+
+            if content.files:
+                print(content.files)
+                context['file'] = content.files
+
         except Content.DoesNotExist:
             pass
 
         tests = Test.objects.filter(chapter_id=kwargs["pk"])
-
-        if context.get("text"):
-            context['text'] = content.text
 
         context['chapter'] = chapter
         context['tests'] = tests

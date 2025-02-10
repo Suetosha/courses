@@ -1,18 +1,25 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h3 class="d-flex justify-content-center mt-3">Главы курса:</h3>   
     
-<div class="d-flex flex-wrap justify-content-center gap-3 mt-4">
+<h3 class="d-flex justify-content-center mt-3">{{ course.title }}</h3>
+    
+<pre class="d-flex flex-wrap justify-content-center mt-5">
+    {{ course.description }}
+</pre>    
+    
+<h3 class="d-flex justify-content-center mt-5">Главы курса:</h3>
+    
+<div class="d-flex flex-wrap justify-content-center gap-3 mt-5">
     {% for chapter in chapters %}
-        <div class="card" style="width: 18rem;">
+        <div class="card {% if chapter.completed_tests_count == chapter.total_tests_count %}completed-chapter{% endif %}" style="width: 18rem;">
             <div class="card-body">
                 <h5 class="card-title">{{ chapter.title }}</h5>
                 <p>
                     Выполнено тестов:
                     {{ chapter.completed_tests_count }} / {{ chapter.total_tests_count }}
                 </p>
-                
+
                 {% if chapter.is_accessible %}
                     <a href="{% url 'courses:chapter' chapter.id %}" class="card-link">Перейти</a>
                 {% endif %}
@@ -22,5 +29,20 @@
         <p class="mt-3">Главы курса не найдены.</p>
     {% endfor %}
 </div>
+
+<style>
+    .completed-chapter {
+        background-color: #28a745; /* Зеленый цвет */
+        color: white; /* Белый текст */
+        }
+    pre {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Мягкий шрифт */
+        font-size: 1.2rem; /* Немного меньше */
+        font-weight: 500; /* Почти жирный, но не слишком */
+        color: #444; /* Меньше контраста, но немного темнее */
+        line-height: 1.5; /* Более комфортный межстрочный интервал */
+        white-space: pre-wrap; /* Перенос длинных строк */
+    }
+</style>    
     
 {% endblock %}

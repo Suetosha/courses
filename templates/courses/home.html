@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h3 class="d-flex justify-content-center mt-3">Доступные курсы:</h3>
+<h3 class="d-flex justify-content-center mt-5">Доступные курсы:</h3>
     
-<form method="GET" class="d-flex flex-wrap justify-content-center mt-3">
+<form method="GET" class="d-flex flex-wrap justify-content-center mt-5">
     <input type="text" name="query" 
            class="form-control w-25 mb-2" 
            placeholder="Введите название курса" 
@@ -25,14 +25,13 @@
     <button type="submit" class="btn btn-primary ms-2">Найти</button>
 </form>
 
-<div class="d-flex flex-wrap justify-content-center gap-3 mt-4">
+<div class="d-flex flex-wrap justify-content-center gap-3 mt-5">
     {% for course in courses %}
     <div class="card" style="width: 18rem;">
         <div class="card-body">
             <h5 class="card-title">{{ course.title }}</h5>
             <h6 class="card-subtitle mb-2 text-muted">{{ course.category.title }}</h6>
-            <p class="card-text">{{ course.description }}</p>
-            <a href="{% url 'courses:course' course.id %}" class="card-link">Зайти в курс</a>
+            <a href="{% url 'courses:course' course.id %}" class="card-link">Начать курс</a>
         </div>
     </div>
     {% empty %}
