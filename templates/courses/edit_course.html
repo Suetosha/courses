@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>{{ title }}</h2>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <div class="form-group mb-3">
+            <label for="id_title" class="form-label">Курс</label>
+            {{ form.title }}
+        </div>
+
+        <div class="form-group mb-3">
+            <label for="id_description" class="form-label">Описание</label>
+            {{ form.description }}
+        </div>
+
+        <div class="form-group mb-3">
+            <label for="id_status" class="form-label">Статус</label>
+            {{ form.status }}
+        </div>
+
+        <div class="form-group mb-3">
+            <label for="id_category" class="form-label">Категория</label>
+            {{ form.category }}
+        </div>
+
+        <button type="submit" class="btn btn-primary">Обновить курс</button>
+        <a href="{% url 'courses:courses_list' %}" class="btn btn-secondary">Отмена</a>
+    </form>
+
+    <h3 class="mt-5 text-center">Главы курса</h3>
+
+
+    <div class="row d-flex justify-content-center">
+        {% for chapter in chapters %}
+            <div class="col-md-4 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ chapter.title }}</h5>
+                        <a href="{% url 'courses:edit_chapter' chapter.id %}" class="btn btn-secondary">Редактировать</a>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <p class="text-center">Нет глав для этого курса.</p>
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock %}

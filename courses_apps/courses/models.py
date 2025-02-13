@@ -2,16 +2,22 @@ from django.db import models
 from courses_apps.users.models import User
 
 
+
+
 class Category(models.Model):
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=50, null=False)
+
+
+    def __str__(self):
+        return self.name
 
 
 class Course(models.Model):
     STATUS_CHOICES = [
-        ('published', 'Published'),
-        ('unpublished', 'Unpublished'),
+        ('published', 'Опубликовано'),
+        ('unpublished', 'Не опубликовано'),
     ]
-    title = models.CharField(max_length=100)
+    title = models.CharField(max_length=100, null=False)
     description = models.TextField(null=False)
     status = models.CharField(choices=STATUS_CHOICES)
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True)
@@ -36,7 +42,24 @@ class Content(models.Model):
 
 
 class Test(models.Model):
-    question = models.TextField(null=False)
-    answer_options = models.TextField(null=True)
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE)
-    correct_answer = models.TextField(null=False)
+    task = models.ManyToManyField(
+        "Task",
+        blank=True
+    )
+
+
+
+class Progress(models.Model):
+    test = models.ForeignKey(Test, on_delete=models.CASCADE)
+    subscription = models.ForeignKey(Subscription, on_delete=models.CASCADE)
+
+
+class Task(models.Model):
+    question = models.TextField(null=False)
+
+
+class Answer(models.Model):
+    text = models.TextField(null=False)
+    is_correct = models.BooleanField(default=False)
+    task = models.ForeignKey(Task, on_delete=models.CASCADE)

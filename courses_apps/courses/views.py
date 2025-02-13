@@ -1,11 +1,14 @@
 from django.contrib import messages
-from django.core.signals import request_started
-from django.shortcuts import redirect
-from django.views.generic import TemplateView
+from django.shortcuts import redirect, render, get_object_or_404
+from django.urls import reverse, reverse_lazy
 
-from courses_apps.courses.forms import AnswerForm
+from django.views.generic import TemplateView, ListView, FormView, UpdateView, DeleteView, CreateView
+
+from courses_apps.courses.forms import AnswerForm, CreateCourseForm, CreateCategoryForm, ChapterFormSet, \
+    CreateContentForm, ChapterForm
+
 from courses_apps.courses.models import Course, Category, Chapter, Content, Test, Subscription
-from courses_apps.utils.mixins import TitleMixin
+from courses_apps.utils.mixins import TitleMixin, GroupRequiredMixin
 
 
 class HomeTemplateView(TitleMixin, TemplateView):
@@ -31,7 +34,7 @@ class HomeTemplateView(TitleMixin, TemplateView):
         return self.render_to_response(context)
 
 
-class CourseTemplateView(TitleMixin, TemplateView):
+class CourseTemplateView(TitleMixin, GroupRequiredMixin, TemplateView):
     template_name = "courses/course.html"
     title = "Страница курса"
 
@@ -85,11 +88,9 @@ class ChapterTemplateView(TitleMixin, TemplateView):
                 context['text'] = content.text
 
             if content.video:
-                print(content.video)
                 context['video'] = content.video
 
             if content.files:
-                print(content.files)
                 context['file'] = content.files
 
         except Content.DoesNotExist:
@@ -151,6 +152,160 @@ class TestTemplateView(TitleMixin, TemplateView):
 
 
 
+#                      Просмотр курсов
+
+class CoursesListView(TitleMixin, ListView):
+    template_name = "courses/courses_list.html"
+    title = "Просмотр курсов"
+    model = Course
+    context_object_name = 'courses'
+
+#                     Cоздание курсов
+
+class CourseCreateView(TitleMixin, FormView):
+    title = "Создание курса"
+    template_name = "courses/create_course.html"
+    form_class = CreateCourseForm
+    model = Course
+    success_url = reverse_lazy("courses:courses_list")
+
+    def get_context_data(self, **kwargs):
+        # Добавляем форму для глав в контекст
+        context = super().get_context_data(**kwargs)
+        if self.request.POST:
+            context['chapter_formset'] = ChapterFormSet(self.request.POST)
+        else:
+            context['chapter_formset'] = ChapterFormSet()
+        return context
+
+    def form_valid(self, form):
+        context = self.get_context_data()
+        chapter_formset = context['chapter_formset']
+
+        # Сохраняем курс
+        form.instance.save()
+
+        if chapter_formset.is_valid():
+            chapters = chapter_formset.save(commit=False)
+
+            for chapter in chapters:
+                # Привязка главы к курсу
+                chapter.course = form.instance
+                chapter.save()
+
+        return super().form_valid(form)
+
+
+
+class CourseEditView(TitleMixin, UpdateView):
+    title = "Редактирование курса"
+    template_name = "courses/edit_course.html"
+    model = Course
+    form_class = CreateCourseForm
+    success_url = reverse_lazy("courses:courses_list")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        course_id = self.kwargs["pk"]
+        course = Course.objects.get(id=course_id)
+        chapters = Chapter.objects.filter(course=course)
+
+        form = CreateCourseForm(instance=course)
+
+        context['form'] = form
+        context['chapters'] = chapters
+        return context
+
+
+
+
+class CourseDeleteView(DeleteView):
+    model = Course
+    template_name = "courses/course_confirm_delete.html"
+    success_url = reverse_lazy('courses:courses_list')
+
+
+
+
+
+class  CategoryCreateView(TitleMixin, FormView):
+    title = "Создание категории"
+    template_name = "courses/create_category.html"
+    form_class = CreateCategoryForm
+    model = Category
+
+
+    def form_valid(self, form):
+        form.save()
+        return redirect('courses:courses_list')
+
+
+
+class ChapterEditView(TemplateView):
+    template_name = 'courses/edit_chapter.html'
+
+    def get_context_data(self, **kwargs):
+        # Получаем объект главы
+        chapter = Chapter.objects.get(id=self.kwargs['pk'])
+
+        # Создаем формы
+        chapter_form = ChapterForm(instance=chapter)
+        content = Content.objects.filter(chapter=chapter).first()
+        content_form = CreateContentForm(instance=content)
+
+        # Передаем формы и объект главы в контекст
+        context = {
+            'form': chapter_form,
+            'content_form': content_form,
+            'chapter': chapter
+        }
+        return context
+
+    def post(self, request, *args, **kwargs):
+        chapter = Chapter.objects.get(id=self.kwargs['pk'])
+
+        chapter_form = ChapterForm(request.POST, instance=chapter)
+        content_form = CreateContentForm(request.POST, request.FILES)
+
+        # Проверяем, что форма для главы валидна
+        if 'update_chapter' in request.POST.dict() and chapter_form.is_valid():
+            chapter_form.save()
+
+            return redirect(reverse_lazy('courses:edit_course', kwargs={'pk': chapter.course.id}))
+
+        # Проверяем, что форма для контента валидна
+        if 'update_content' in request.POST.dict() and content_form.is_valid():
+            # Сохраняем/обновляем новый контент
+            content, created = Content.objects.get_or_create(chapter=chapter)
+
+            content.text = content_form.cleaned_data.get('text')
+            video = content_form.cleaned_data.get('video')
+            files = content_form.cleaned_data.get('files')
+
+
+            if 'video-clear' in request.POST:
+                content.video = None
+            if video:
+                content.video = content_form.cleaned_data.get('video')
+
+            if 'files-clear' in request.POST:
+                content.files = None
+            if files:
+                content.files = video
+
+            content.chapter = chapter
+            content.save()
+
+
+            return redirect(reverse_lazy('courses:edit_chapter', kwargs={'pk': chapter.id}))
+
+        # # Если хотя бы одна форма не валидна, возвращаем данные и ошибки
+        context = self.get_context_data()
+        context['form'] = chapter_form
+        context['content_form'] = content_form
+
+        return self.render_to_response(context)
 
 
 

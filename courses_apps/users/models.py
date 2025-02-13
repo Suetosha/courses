@@ -1,6 +1,5 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.contrib.postgres.fields import ArrayField
 
 
 class User(AbstractUser):
@@ -13,8 +12,20 @@ class User(AbstractUser):
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES)
-    completed_chapters = ArrayField(models.IntegerField(), default=list)
-    completed_tests = ArrayField(models.IntegerField(), default=list)
-    group_number = models.CharField(max_length=50)
+    groups = models.ManyToManyField(
+        "Group",
+        blank=True
+    )
+
+
+
+class Group(models.Model):
+    number = models.CharField(max_length=30, null=False)
+    year = models.IntegerField(null=False)
+
+
+
+
+
 
 

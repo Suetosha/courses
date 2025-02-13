@@ -9,3 +9,4 @@ urlpatterns = [
     path('', include('courses_apps.courses.urls')),
     path('users/', include('courses_apps.users.urls'))
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+

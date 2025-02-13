@@ -1,8 +1,16 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h3 class="d-flex justify-content-center mt-5">Доступные курсы:</h3>
     
+{% if messages %}
+    {% for message in messages %}
+        <div class="text-center alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}">
+            {{ message|safe }}
+        </div>
+    {% endfor %}
+{% endif %}    
+    
+<h3 class="d-flex justify-content-center mt-5">Доступные курсы:</h3>
 <form method="GET" class="d-flex flex-wrap justify-content-center mt-5">
     <input type="text" name="query" 
            class="form-control w-25 mb-2" 

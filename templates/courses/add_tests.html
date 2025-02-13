@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h2>Добавление тестов для курса: {{ course.title }}</h2>
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit">Опубликовать курс</button>
+    </form>
+{% endblock %}

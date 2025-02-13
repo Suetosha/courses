@@ -25,6 +25,7 @@
     
 <div class="d-flex justify-content-center">
     <div class="w-25 mb-2">
+    {% if not test.answer_options %}
         <form method="post">
             {% csrf_token %}
             {{ form.as_p }}
@@ -34,8 +35,10 @@
                     <input class='btn btn-primary' type="submit" value="Отправить">
                 </div>
             {% endif %}
-        
         </form>
+    {% else %}
+        .... 
+    {% endif %}
     </div>
 </div>
 

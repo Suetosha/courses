@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="text-center">Редактирование главы</h2>
+
+    <!-- Форма редактирования главы -->
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="form-group mb-3">
+            <label for="id_title" class="form-label">Название главы</label>
+            {{ form.title }}
+        </div>
+
+        <button type="submit" name="update_chapter" class="btn btn-primary">Обновить главу</button>
+    </form>
+
+    <hr>
+
+    <h3 class="text-center mt-4">Контент главы</h3>
+    
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="form-group mb-3">
+            <label for="id_text" class="form-label">Текст</label>
+            {{ content_form.text }}
+        </div>
+
+        <div class="form-group mb-3">
+            <label for="id_video" class="form-label">Видео</label>
+            {{ content_form.video }}
+        </div>
+    
+        <div class="form-group mb-3">
+            <label for="id_files" class="form-label">Файл</label>
+            {{ content_form.files }}
+        </div>
+        
+        <button type="submit" name="update_content" class="btn btn-success">Добавить/обновить контент</button>
+    </form>
+</div>
+ 
+{% endblock %}

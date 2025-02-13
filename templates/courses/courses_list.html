@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Список курсов</h1>
+        <div class="d-flex justify-content-end">
+            <a href="{% url 'courses:create_category' %}" class="btn btn-primary">Создать категорию</a>
+            <a href="{% url 'courses:create_course' %}" class="btn btn-primary ms-5">Создать курс</a>    
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped">
+            <thead class="table-light">
+                <tr>
+                    <th>Название</th>
+                    <th>Описание</th>
+                    <th>Статус</th>
+                    <th>Категория</th>
+                    <th class="text-center" style="width: 100px;">Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for course in courses %}
+                <tr>
+                    <td>{{ course.title }}</td>
+                    <td>{{ course.description|truncatechars:100 }}</td>
+                    <td>{{ course.status }}</td>
+                    <td>{{ course.category.name }}</td>
+                    <td class="text-center">
+                        <a href="{% url 'courses:edit_course' course.id %}" class="text-warning me-2">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{% url 'courses:delete_course' course.id %}" class="text-danger">
+                            <i class="fas fa-trash-alt"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Подключение Font Awesome, если его нет -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+
+{% endblock %}

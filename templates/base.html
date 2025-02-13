@@ -12,12 +12,14 @@
           <ul class="nav me-auto">
               <li class="nav-item"><a href="{% url 'courses:home' %}" class="nav-link link-dark px-2 active">Курсы</a></li>
           </ul>
-        
+          <ul class="nav me-auto">
+              <li class="nav-item"><a href="{% url 'courses:courses_list' %}" class="nav-link link-dark px-2 active">Редактировать курсы</a></li>
+          </ul>
           {% if request.user.is_authenticated %}
               
             <ul class="nav">
                 <li class="nav-item">
-                    <a href="{% url 'users:profile' %}" class="nav-link link-dark px-2 active">Профиль</a>
+                    <a href="{% url 'users:profile' user.id %}" class="nav-link link-dark px-2 active">Профиль</a>
                 </li>
  
                 <li class="nav-item">
