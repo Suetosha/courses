@@ -37,7 +37,10 @@
             {% for index, test in tests|enumerate %}
             <div class="col-auto p-1">
                 <a href="{% url 'courses:test' test.id %}"
-                   class="card {% if test.id in request.user.completed_tests %} completed-test-card {% else %} not-completed-test-card {% endif %} text-decoration-none d-flex align-items-center justify-content-center">
+                   class="card 
+                    {% if test.id in request.user.completed_tests %} completed-test-card 
+                    {% else %} not-completed-test-card 
+                    {% endif %} text-decoration-none d-flex align-items-center justify-content-center">
                     <div class="card-body p-2 text-center">
                         <h6 class="card-title mb-0">{{ index }}</h6>
                     </div>

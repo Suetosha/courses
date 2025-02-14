@@ -1,7 +1,7 @@
 from django import forms
 from django.forms import inlineformset_factory
 
-from courses_apps.courses.models import Course, Category, Chapter, Content
+from courses_apps.courses.models import Course, Category, Chapter, Content, Test, Task, Answer
 
 
 class AnswerForm(forms.Form):
@@ -117,6 +117,39 @@ class CreateContentForm(forms.ModelForm):
 
     )
 
+
+class CreateTaskForm(forms.ModelForm):
+    class Meta:
+        model = Task
+        fields = ["question"]
+
+    question = forms.CharField(label='Вопрос:', widget=forms.TextInput(attrs={
+        'class': "form-control", 'placeholder': "Введите текст вопроса", 'required': 'Введите текст вопроса'}))
+
+
+class AnswerTestForm(forms.ModelForm):
+    class Meta:
+        model = Answer
+        fields = ['text', 'is_correct']
+
+    text = forms.CharField(
+        label='Текст ответа',
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Введите текст ответа', 'required': 'required'})
+    )
+
+    is_correct = forms.BooleanField(
+        label='Верный ответ',
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input form-check-inline'})
+    )
+
+AnswerFormSet = inlineformset_factory(
+    Task, Answer,
+    form=AnswerTestForm,
+    fields=['text', 'is_correct'],
+    extra=0,
+    can_delete=True
+)
 
 
 

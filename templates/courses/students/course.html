@@ -12,7 +12,8 @@
     
 <div class="d-flex flex-wrap justify-content-center gap-3 mt-5">
     {% for chapter in chapters %}
-        <div class="card {% if chapter.completed_tests_count == chapter.total_tests_count %}completed-chapter{% endif %}" style="width: 18rem;">
+        <div class="card 
+            {% if chapter.completed_tests_count == chapter.total_tests_count and chapter.total_tests_count != 0%}completed-chapter{% endif %}" style="width: 18rem;">
             <div class="card-body">
                 <h5 class="card-title">{{ chapter.title }}</h5>
                 <p>

@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Список заданий</h1>
+        <div class="d-flex justify-content-end">
+            <a href="{% url 'courses:create_task' %}" class="btn btn-primary ms-5">Создать задание</a>    
+        </div>
+    </div>
+        <table class="table table-bordered">
+            <thead class="table-light">
+                <tr>
+                    <th>Вопрос</th>
+                    <th>Ответы</th>
+                    <th>Верный/Неверный</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in tasks %}
+                    <tr>
+                        <td>{{ task.question }}</td>
+                        <td>
+                            <ul class="list-unstyled mb-0">
+                                {% for answer in task.answer_set.all %}
+                                    <li>{{ answer.text }}</li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                        <td>
+                            <ul class="list-unstyled mb-0">
+                                {% for answer in task.answer_set.all %}
+                                    <li>{% if answer.is_correct %} ✅ {% else %} ❌ {% endif %}</li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                        <td>
+                            <a href="{% url 'courses:edit_task' task.id %}">✏️</a>
+                            <a href="{% url 'courses:delete_task' task.id %}">🗑️</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+</div>
+
+
+{% endblock %}

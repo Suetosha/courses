@@ -1,18 +1,20 @@
 from django.contrib import messages
+from django.contrib.messages.views import SuccessMessageMixin
 from django.shortcuts import redirect, render, get_object_or_404
 from django.urls import reverse, reverse_lazy
+from django.forms import modelformset_factory
 
 from django.views.generic import TemplateView, ListView, FormView, UpdateView, DeleteView, CreateView
 
 from courses_apps.courses.forms import AnswerForm, CreateCourseForm, CreateCategoryForm, ChapterFormSet, \
-    CreateContentForm, ChapterForm
+    CreateContentForm, ChapterForm, CreateTaskForm, AnswerFormSet, AnswerTestForm
 
-from courses_apps.courses.models import Course, Category, Chapter, Content, Test, Subscription
+from courses_apps.courses.models import Course, Category, Chapter, Content, Test, Subscription, Task, Answer
 from courses_apps.utils.mixins import TitleMixin, GroupRequiredMixin
 
 
 class HomeTemplateView(TitleMixin, TemplateView):
-    template_name = "courses/home.html"
+    template_name = "courses/students/home.html"
     title = "Курсы"
 
 
@@ -34,8 +36,8 @@ class HomeTemplateView(TitleMixin, TemplateView):
         return self.render_to_response(context)
 
 
-class CourseTemplateView(TitleMixin, GroupRequiredMixin, TemplateView):
-    template_name = "courses/course.html"
+class CourseTemplateView(TitleMixin, TemplateView):
+    template_name = "courses/students/course.html"
     title = "Страница курса"
 
     def get(self, request, *args, **kwargs):
@@ -43,10 +45,6 @@ class CourseTemplateView(TitleMixin, GroupRequiredMixin, TemplateView):
 
         chapters = list(Chapter.objects.filter(course_id=kwargs["pk"]).order_by("id"))
         course = Course.objects.get(pk=kwargs["pk"])
-
-        # Оформляем подписку юзера на данный курс
-        if not Subscription.objects.filter(user=request.user, course=course).exists():
-            Subscription.objects.create(user=request.user, course=course)
 
         for chapter in chapters:
             tests = Test.objects.filter(chapter=chapter)
@@ -74,7 +72,7 @@ class CourseTemplateView(TitleMixin, GroupRequiredMixin, TemplateView):
 
 
 class ChapterTemplateView(TitleMixin, TemplateView):
-    template_name = "courses/chapter.html"
+    template_name = "courses/students/chapter.html"
     title = "Глава"
 
 
@@ -99,14 +97,14 @@ class ChapterTemplateView(TitleMixin, TemplateView):
         tests = Test.objects.filter(chapter_id=kwargs["pk"])
 
         context['chapter'] = chapter
-        context['tests'] = tests
+        context['tasks'] = tests
         return self.render_to_response(context)
 
 
 
 
 class TestTemplateView(TitleMixin, TemplateView):
-    template_name = "courses/test.html"
+    template_name = "courses/students/test.html"
     title = "Тест"
     form_class = AnswerForm
 
@@ -118,7 +116,7 @@ class TestTemplateView(TitleMixin, TemplateView):
         test = Test.objects.get(id=kwargs["pk"])
         tests = Test.objects.filter(chapter_id=test.chapter_id)
 
-        context['tests'] = tests
+        context['tasks'] = tests
         context['test'] = test
 
         if test.id in user.completed_tests:
@@ -152,22 +150,24 @@ class TestTemplateView(TitleMixin, TemplateView):
 
 
 
-#                      Просмотр курсов
+#                              Курсы
 
+# Просмотр курсов
 class CoursesListView(TitleMixin, ListView):
-    template_name = "courses/courses_list.html"
+    template_name = "courses/teachers/courses/courses_list.html"
     title = "Просмотр курсов"
     model = Course
     context_object_name = 'courses'
 
-#                     Cоздание курсов
 
-class CourseCreateView(TitleMixin, FormView):
+# Создание курсов
+class CourseCreateView(TitleMixin, SuccessMessageMixin, FormView):
     title = "Создание курса"
-    template_name = "courses/create_course.html"
+    template_name = "courses/teachers/courses/create_course.html"
     form_class = CreateCourseForm
     model = Course
     success_url = reverse_lazy("courses:courses_list")
+    success_message = "Курс успешно создан"
 
     def get_context_data(self, **kwargs):
         # Добавляем форму для глав в контекст
@@ -196,13 +196,14 @@ class CourseCreateView(TitleMixin, FormView):
         return super().form_valid(form)
 
 
-
-class CourseEditView(TitleMixin, UpdateView):
+# Редактирование курса
+class CourseUpdateView(TitleMixin, SuccessMessageMixin, UpdateView):
     title = "Редактирование курса"
-    template_name = "courses/edit_course.html"
+    template_name = "courses/teachers/courses/update_course.html"
     model = Course
     form_class = CreateCourseForm
     success_url = reverse_lazy("courses:courses_list")
+    success_message = "Курс успешно обновлен"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -219,31 +220,34 @@ class CourseEditView(TitleMixin, UpdateView):
 
 
 
-
-class CourseDeleteView(DeleteView):
+# Удаление курса
+class CourseDeleteView(TitleMixin, SuccessMessageMixin, DeleteView):
+    title = "Удаление курса"
+    template_name = "courses/teachers/courses/course_confirm_delete.html"
     model = Course
-    template_name = "courses/course_confirm_delete.html"
     success_url = reverse_lazy('courses:courses_list')
+    success_message = "Курс успешно удален"
 
 
+#                               Категории
 
-
-
-class  CategoryCreateView(TitleMixin, FormView):
+# Создание категорий
+class CategoryCreateView(TitleMixin, SuccessMessageMixin, CreateView):
     title = "Создание категории"
-    template_name = "courses/create_category.html"
+    template_name = "courses/teachers/create_category.html"
     form_class = CreateCategoryForm
     model = Category
+    success_url = reverse_lazy('courses:courses_list')
+    success_message = "Категория успешно создана"
 
 
-    def form_valid(self, form):
-        form.save()
-        return redirect('courses:courses_list')
+#                               Главы
 
-
-
-class ChapterEditView(TemplateView):
-    template_name = 'courses/edit_chapter.html'
+# Создание глав
+class ChapterUpdateView(TitleMixin, SuccessMessageMixin, TemplateView):
+    title = 'Редактирование главы'
+    template_name = 'courses/teachers/update_chapter.html'
+    success_message = 'Глава успешно обновлена'
 
     def get_context_data(self, **kwargs):
         # Получаем объект главы
@@ -306,6 +310,100 @@ class ChapterEditView(TemplateView):
         context['content_form'] = content_form
 
         return self.render_to_response(context)
+
+
+
+#                                   Задания
+
+# Просмотр заданий
+class TaskListView(TitleMixin, ListView):
+    title = "Просмотр заданий"
+    template_name = "courses/teachers/tasks/tasks_list.html"
+    model = Task
+    context_object_name = 'tasks'
+
+    def get_queryset(self):
+        return Task.objects.prefetch_related("answer_set")
+
+
+# Создание задания
+class TaskCreateView(TitleMixin, SuccessMessageMixin, CreateView):
+    title = 'Создание задания'
+    template_name = "courses/teachers/tasks/create_task.html"
+    model = Task
+    form_class = CreateTaskForm
+    success_url = reverse_lazy("courses:tasks_list")
+    success_message = 'Задание успешно создано'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.POST:
+            context['answer_formset'] = AnswerFormSet(self.request.POST)
+        else:
+            context['answer_formset'] = AnswerFormSet()
+        return context
+
+    def form_valid(self, form):
+        context = self.get_context_data()
+        answer_formset = context['answer_formset']
+
+        # Сохраняем вопрос
+        self.object = form.save()
+
+        if answer_formset.is_valid():
+            answers = answer_formset.save(commit=False)
+
+
+            # Проходим по всем ответам и сохраняем их
+            for answer in answers:
+                answer.task = self.object  # Привязываем ответ к вопросу
+                answer.save()
+
+        return super().form_valid(form)
+
+
+# Редактирование задания
+class TaskUpdateView(TitleMixin, SuccessMessageMixin, UpdateView):
+    title = 'Редактировать задание'
+    model = Task
+    template_name = "courses/teachers/tasks/update_task.html"
+    form_class = CreateTaskForm
+    success_url = reverse_lazy("courses:tasks_list")
+    success_message = "Данные обновлены"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        answer_formset = AnswerFormSet(instance=self.object)
+        task_form = CreateTaskForm(instance=self.object)
+
+        context['answer_formset'] = answer_formset
+        context['form'] = task_form
+        return context
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()  # Получаем задание
+        task_form = self.get_form()
+        answer_formset = AnswerFormSet(request.POST, instance=self.object)
+
+        if task_form.is_valid() and answer_formset.is_valid():
+            task_form.save()
+            answer_formset.save()
+            return self.form_valid(task_form)
+
+        context = self.get_context_data()
+        context['form'] = task_form
+        context['answer_formset'] = answer_formset
+        return self.render_to_response(context)
+
+
+# Удаление задания
+class TaskDeleteView(TitleMixin, SuccessMessageMixin, DeleteView):
+    title = 'Удалить задание'
+    template_name = "courses/teachers/tasks/task_confirm_delete.html"
+    model = Task
+    success_url = reverse_lazy('courses:tasks_list')
+    success_message = 'Задание успешно удалено'
+
 
 
 

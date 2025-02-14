@@ -4,16 +4,7 @@
 
 {% block content %}
 <h3 class="d-flex justify-content-center mt-3">Тест</h3>    
-    
-{% if messages %}
-    {% for message in messages %}
-        <div class="text-center alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}">
-            {{ message|safe }}
-        </div>
-    {% endfor %}
-{% endif %}
-    
-   
+ 
 <div class="d-flex justify-content-center mt-3">
     <div>
         <pre style="font-family: Arial, sans-serif; font-size: 16px;">

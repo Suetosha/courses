@@ -3,6 +3,7 @@ from django.shortcuts import redirect
 from django.contrib import messages
 
 from courses_apps.courses.models import Course, Subscription
+from courses_apps.users.models import Group
 
 
 class TitleMixin:
@@ -25,7 +26,8 @@ class GroupRequiredMixin(LoginRequiredMixin):
             return self.handle_no_permission()
 
         # Если студент не ввел номер группы, то перенаправляет на страницу с профилем
-        if not request.user.group_number:
+        Group.objects.filter(user=request.user).exists()
+        if not request.user.group.number:
             messages.error(request, "Пожалуйста, укажите вашу группу в профиле.")
             return redirect("users:profile", request.user.id)
         return super().dispatch(request, *args, **kwargs)

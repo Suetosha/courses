@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+    
+    
+    
+<div class="container mt-4">
+    <h2 class="text-center">Редактировать задание</h2>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }} 
+
+        {{ answer_formset.management_form }}
+        {% for form in answer_formset %}
+            {{ form.as_p }}
+        {% endfor %}
+
+        <button type="submit" class="btn btn-primary">Сохранить изменения</button>    
+    </form>
+
+    <div class="d-flex justify-content-center mt-5">
+        <a href="{% url 'courses:tasks_list' %}" class="btn btn-secondary">← Вернуться обратно</a>
+    </div>
+</div>
+
+
+{% endblock %}
+
