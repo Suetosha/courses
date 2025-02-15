@@ -4,18 +4,18 @@
     
 <div class="container mt-4">
     <div class="card p-4 shadow-sm mx-auto" style="max-width: 600px;">
-        <h2 class="text-center">Создать категорию</h2>
+        <h2 class="text-center">Создание теста</h2>
         <form method="post">
             {% csrf_token %}
+
             <div class="form-group mt-3">
                 {{ form.as_p }}    
             </div>
-            <button type="submit" class="btn btn-primary">Сохранить</button>
+            
+            <div class="d-flex justify-content-center">
+                <button type="submit" class="btn btn-primary">Сохранить</button>     
+            </div> 
         </form>
-    </div>
-    
-    <div class="d-flex justify-content-center mt-3">
-        <a href="{% url 'courses:courses_list' %}" class="btn btn-secondary">← Вернуться обратно</a>
     </div>
 </div>
     

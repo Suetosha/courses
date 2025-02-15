@@ -12,11 +12,17 @@
           <ul class="nav me-auto">
               <li class="nav-item"><a href="{% url 'courses:home' %}" class="nav-link link-dark px-2 active">Курсы</a></li>
           </ul>
+        
           <ul class="nav me-auto">
               <li class="nav-item"><a href="{% url 'courses:courses_list' %}" class="nav-link link-dark px-2 active">Курсы</a></li>
           </ul>
+        
           <ul class="nav me-auto">
               <li class="nav-item"><a href="{% url 'courses:tasks_list' %}" class="nav-link link-dark px-2 active">Задания</a></li>
+          </ul>
+        
+          <ul class="nav me-auto">
+              <li class="nav-item"><a href="{% url 'courses:tests_list' %}" class="nav-link link-dark px-2 active">Тесты</a></li>
           </ul>
           {% if request.user.is_authenticated %}
               
@@ -44,13 +50,13 @@
         </div>
     </nav>
     
-{% if messages %}
-    {% for message in messages %}
-        <div class="text-center alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}">
-            {{ message|safe }}
-        </div>
-    {% endfor %}
-{% endif %}   
+    {% if messages %}
+        {% for message in messages %}
+            <div class="text-center alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}">
+                {{ message|safe }}
+            </div>
+        {% endfor %}
+    {% endif %}
     
     {% block content %}
     {% endblock %}

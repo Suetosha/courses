@@ -1,14 +1,15 @@
+from django.contrib.auth import login
 from django.contrib.auth.views import LoginView
-from django.http import HttpResponseRedirect, HttpResponseBadRequest
 from django.urls import reverse_lazy
-from django.views.generic import CreateView, TemplateView, UpdateView
-from django.contrib import messages
+from django.views.generic import CreateView, UpdateView
+from django.contrib.messages.views import SuccessMessageMixin
 
-from courses_apps.courses.models import Course, Chapter, Test
+from courses_apps.courses.models import Course
 from courses_apps.users.forms import UserLoginForm, UserRegistrationForm, UserProfileForm
 from courses_apps.users.models import User
 from courses_apps.utils.mixins import TitleMixin
-from django.contrib.messages.views import SuccessMessageMixin
+
+
 
 class UserLoginView(TitleMixin, LoginView):
     template_name = 'users/login.html'
@@ -19,17 +20,14 @@ class UserLoginView(TitleMixin, LoginView):
 class UserRegistrationView(TitleMixin, SuccessMessageMixin, CreateView):
     template_name = 'users/registration.html'
     form_class = UserRegistrationForm
+    success_message = "Вы успешно зарегистрировались!"
     success_url = reverse_lazy('users:login')
     title = 'Регистрация'
 
-    def post(self, request, *args, **kwargs):
-        form = UserRegistrationForm(request.POST)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Вы успешно зарегистрировались')
-            return HttpResponseRedirect(reverse_lazy('users:login'))
-        else:
-            return HttpResponseBadRequest("Некорректные данные")
+    def form_valid(self, form):
+        user = form.save()
+        login(self.request, user)
+        return super().form_valid(form)
 
 
 class UserProfileView(TitleMixin, SuccessMessageMixin, UpdateView):
@@ -46,16 +44,8 @@ class UserProfileView(TitleMixin, SuccessMessageMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super(UserProfileView, self).get_context_data(**kwargs)
-
         courses = Course.objects.filter(subscription__user_id=self.request.user.id)
-
         context['courses'] = courses
-        #
-        # for course in courses:
-        #     chapters = Chapter.objects.filter(course=course)
-        #     course.total_chapters = chapters.count()
-        #     for test in Test.objects.filter(course=course):
-
         return context
 
 

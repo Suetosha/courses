@@ -13,7 +13,9 @@
 
         {{ answer_formset.management_form }}
         {% for form in answer_formset %}
-            {{ form.as_p }}
+            <div class="form-group mb-3">
+                {{ form }}
+            </div>
         {% endfor %}
 
         <button type="submit" class="btn btn-primary">Сохранить изменения</button>    
@@ -23,7 +25,6 @@
         <a href="{% url 'courses:tasks_list' %}" class="btn btn-secondary">← Вернуться обратно</a>
     </div>
 </div>
-
 
 {% endblock %}
 

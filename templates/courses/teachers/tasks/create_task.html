@@ -3,7 +3,7 @@
 {% block content %}
 <div class="container mt-4">
     <div class="card p-4 shadow-sm mx-auto" style="max-width: 600px;">
-        <h2 class="text-center">Редактировать задание</h2>
+        <h2 class="text-center">Создать задание</h2>
         <form method="post">
             {% csrf_token %}
 
@@ -24,20 +24,19 @@
                         </div>
                     
                         <div class="form-check ms-2">
-                            {{ answer_form.is_correct }} <!-- Чекбокс -->
+                            {{ answer_form.is_correct }} 
                             <label class="form-check-label" for="{{ answer_form.is_correct.id_for_label }}">Верный ответ</label>
                         </div>
 
                         {% if not forloop.first %}
                             <button type="button" class="btn btn-danger ms-2 remove-answer">
-                                <i class="bi bi-dash"></i> <!-- Иконка минуса -->
+                                <i class="bi bi-dash"></i>
                             </button>
                         {% endif %}
                     </div>
                 {% endfor %}
             </div>
-
-            <!-- Кнопка для добавления ответа -->
+        
             <div class="d-flex justify-content-center mb-5">
                 <button type="button" id="add-answer" class="btn btn-secondary">+</button>
             </div>
@@ -77,8 +76,10 @@ document.addEventListener("DOMContentLoaded", function () {
         // Обновляем id и for атрибуты для всех полей формы, включая чекбоксы
         newForm.querySelectorAll("input").forEach(input => {
             input.id = input.id.replace("-0-", `-${formCount}-`);
+            
             if (input.type === "checkbox") {
                 input.checked = false; // Снимаем отметку с чекбокса
+                
                 // Обновляем атрибуты for для метки
                 let label = newForm.querySelector(`label[for='${input.id}']`);
                 if (label) {

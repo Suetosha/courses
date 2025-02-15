@@ -1,15 +1,20 @@
 from django import forms
 from django.forms import inlineformset_factory
 
-from courses_apps.courses.models import Course, Category, Chapter, Content, Test, Task, Answer
+from courses_apps.courses.models import Course, Category, Chapter, Content, Task, Answer, Test
 
 
 class AnswerForm(forms.Form):
     class Meta:
         fields = ('answer',)
 
-    answer = forms.CharField(label='Ответ', widget=forms.TextInput(attrs={
-        'class': "form-control", 'placeholder': "Введите ответ", 'required': 'Нужно ввести ответ'}))
+    answer = forms.CharField(
+        label='Ответ',
+        widget=forms.TextInput(attrs={
+            'class': "form-control",
+            'placeholder': "Введите ответ",
+            'required': 'Нужно ввести ответ'
+        }))
 
 
 
@@ -24,8 +29,14 @@ class CreateCourseForm(forms.ModelForm):
         self.fields['category'].queryset = Category.objects.all()
 
 
-    title = forms.CharField(label='Курс', widget=forms.TextInput(attrs={
-        'class': "form-control", 'placeholder': "Введите название курса", 'required': 'Введите название курса'}))
+    title = forms.CharField(
+        label='Курс',
+        widget=forms.TextInput(attrs={
+            'class': "form-control",
+            'placeholder': "Введите название курса",
+            'required': 'Введите название курса'
+        }))
+
 
     description = forms.CharField(
         label='Описание',
@@ -36,11 +47,13 @@ class CreateCourseForm(forms.ModelForm):
             'required': 'Нужно написать описание курса'
         }))
 
+
     status = forms.ChoiceField(
         choices=Course.STATUS_CHOICES,
         label='Статус',
         widget=forms.Select(attrs={'class': "form-select"})
     )
+
 
     category = forms.ModelChoiceField(
         queryset=None,
@@ -54,8 +67,13 @@ class ChapterForm(forms.ModelForm):
         model = Chapter
         fields = ['title']
 
-    title = forms.CharField(label='Глава:', widget=forms.TextInput(attrs={
-        'class': "form-control", 'placeholder': "Введите название глав", 'required': 'Введите название глав'}))
+    title = forms.CharField(
+        label='Глава:',
+        widget=forms.TextInput(attrs={
+            'class': "form-control",
+            'placeholder': "Введите название глав",
+            'required': 'Введите название глав'
+        }))
 
 
 # Создаём InlineFormSet для модели Chapter (Для динамического добавления глав)
@@ -74,8 +92,13 @@ class CreateCategoryForm(forms.ModelForm):
         model = Category
         fields = ['name']
 
-    name = forms.CharField(label='Категория', widget=forms.TextInput(attrs={
-        'class': "form-control", 'placeholder': "Введите новую категорию", 'required': 'Нужно ввести новую категорию'}))
+    name = forms.CharField(
+        label='Категория',
+        widget=forms.TextInput(attrs={
+            'class': "form-control",
+            'placeholder': "Введите новую категорию",
+            'required': 'Нужно ввести новую категорию'
+        }))
 
 
 
@@ -123,8 +146,13 @@ class CreateTaskForm(forms.ModelForm):
         model = Task
         fields = ["question"]
 
-    question = forms.CharField(label='Вопрос:', widget=forms.TextInput(attrs={
-        'class': "form-control", 'placeholder': "Введите текст вопроса", 'required': 'Введите текст вопроса'}))
+    question = forms.CharField(
+        label='Вопрос:',
+        widget=forms.TextInput(attrs={
+            'class': "form-control",
+            'placeholder': "Введите текст вопроса",
+            'required': 'Введите текст вопроса'
+        }))
 
 
 class AnswerTestForm(forms.ModelForm):
@@ -134,22 +162,70 @@ class AnswerTestForm(forms.ModelForm):
 
     text = forms.CharField(
         label='Текст ответа',
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Введите текст ответа', 'required': 'required'})
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Введите текст ответа',
+            'required': 'required',
+        })
     )
 
     is_correct = forms.BooleanField(
         label='Верный ответ',
         required=False,
-        widget=forms.CheckboxInput(attrs={'class': 'form-check-input form-check-inline'})
+        widget=forms.CheckboxInput(attrs={
+            'class': 'form-check-input form-check-inline'
+        })
     )
 
-AnswerFormSet = inlineformset_factory(
+
+# Создаём InlineFormSet для модели Answer - create_task/update_task (Для динамического добавления вопросов)
+AnswerFormCreateSet = inlineformset_factory(
+    Task, Answer,
+    form=AnswerTestForm,
+    fields=['text', 'is_correct'],
+    extra=1,
+    can_delete=True
+)
+
+# Создаём InlineFormSet для модели Answer - update_task
+AnswerFormUpdateSet = inlineformset_factory(
     Task, Answer,
     form=AnswerTestForm,
     fields=['text', 'is_correct'],
     extra=0,
-    can_delete=True
 )
+
+
+
+
+class CreateTestForm(forms.ModelForm):
+    class Meta:
+        model = Test
+        fields = ['chapter', 'tasks']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["tasks"].queryset = Task.objects.all()
+        self.fields["chapter"].queryset = Chapter.objects.all()
+
+
+    chapter = forms.ModelChoiceField(
+        queryset=Chapter.objects.none(),
+        required=True,
+        empty_label="Выберите главу",
+        label="Глава"
+    )
+
+    tasks = forms.ModelMultipleChoiceField(
+        queryset=Task.objects.none(),
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        label="Задания"
+    )
+
+
+
+
 
 
 

@@ -3,8 +3,10 @@
 {% block content %}
 
 <div class="container mt-5">
+
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1>Список курсов</h1>
+        
         <div class="d-flex justify-content-end">
             <a href="{% url 'courses:create_category' %}" class="btn btn-primary">Создать категорию</a>
             <a href="{% url 'courses:create_course' %}" class="btn btn-primary ms-5">Создать курс</a>    
@@ -26,7 +28,7 @@
                 {% for course in courses %}
                 <tr>
                     <td>{{ course.title }}</td>
-                    <td>{{ course.description|truncatechars:100 }}</td>
+                    <td>{{ course.description|truncatechars:50 }}</td>
                     <td>{{ course.status }}</td>
                     <td>{{ course.category.name }}</td>
                     <td class="text-center">
@@ -42,7 +44,7 @@
             </tbody>
         </table>
     </div>
+
 </div>
     
-
 {% endblock %}

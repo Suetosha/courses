@@ -7,9 +7,8 @@
     <div class="container mt-5" style="max-width: 800px;">
         <div class="row">
             {% if text %}
-                <pre
-                     style="font-family: Arial, sans-serif; font-size: 16px;"
-                     class="d-flex justify-content-center mt-3">{{ text }}
+                <pre class="d-flex justify-content-center mt-3">
+                    {{ text }}
                 </pre>
             {% endif %}
         </div>
@@ -54,6 +53,11 @@
 
 
 <style>
+    .pre{
+        font-family: Arial, sans-serif;
+        font-size: 16px;
+        
+    }
     /* Стиль для формы карточки */
     .card {
         width: 50px;

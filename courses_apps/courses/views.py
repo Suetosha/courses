@@ -1,22 +1,19 @@
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
-from django.shortcuts import redirect, render, get_object_or_404
-from django.urls import reverse, reverse_lazy
-from django.forms import modelformset_factory
+from django.db.models import Prefetch
+from django.shortcuts import redirect
+from django.urls import reverse_lazy
 
 from django.views.generic import TemplateView, ListView, FormView, UpdateView, DeleteView, CreateView
 
-from courses_apps.courses.forms import AnswerForm, CreateCourseForm, CreateCategoryForm, ChapterFormSet, \
-    CreateContentForm, ChapterForm, CreateTaskForm, AnswerFormSet, AnswerTestForm
-
-from courses_apps.courses.models import Course, Category, Chapter, Content, Test, Subscription, Task, Answer
-from courses_apps.utils.mixins import TitleMixin, GroupRequiredMixin
+from courses_apps.courses.forms import *
+from courses_apps.courses.models import Course, Category, Chapter, Content, Test, Task, TestTask
+from courses_apps.utils.mixins import TitleMixin
 
 
 class HomeTemplateView(TitleMixin, TemplateView):
     template_name = "courses/students/home.html"
     title = "Курсы"
-
 
     def get(self, request, *args, **kwargs):
         context = super(HomeTemplateView, self).get_context_data(*args, **kwargs)
@@ -51,7 +48,6 @@ class CourseTemplateView(TitleMixin, TemplateView):
             chapter.completed_tests_count = sum(1 for test in tests if test.id in request.user.completed_tests)
             chapter.total_tests_count = tests.count()
 
-
         # Первая глава всегда доступна
         if chapters:
             chapters[0].is_accessible = True
@@ -64,6 +60,7 @@ class CourseTemplateView(TitleMixin, TemplateView):
             prev_completed_count = sum(1 for test in prev_tests if test.id in request.user.completed_tests)
 
             # Текущая глава доступна, если предыдущая полностью пройдена
+
             current_chapter.is_accessible = prev_completed_count == prev_tests.count()
 
         context['course'] = course
@@ -74,7 +71,6 @@ class CourseTemplateView(TitleMixin, TemplateView):
 class ChapterTemplateView(TitleMixin, TemplateView):
     template_name = "courses/students/chapter.html"
     title = "Глава"
-
 
     def get(self, request, *args, **kwargs):
         context = super(ChapterTemplateView, self).get_context_data(*args, **kwargs)
@@ -101,13 +97,10 @@ class ChapterTemplateView(TitleMixin, TemplateView):
         return self.render_to_response(context)
 
 
-
-
 class TestTemplateView(TitleMixin, TemplateView):
     template_name = "courses/students/test.html"
     title = "Тест"
     form_class = AnswerForm
-
 
     def get(self, request, *args, **kwargs):
         context = super(TestTemplateView, self).get_context_data(*args, **kwargs)
@@ -137,7 +130,6 @@ class TestTemplateView(TitleMixin, TemplateView):
             user_answer = form.cleaned_data["answer"].lower()
             correct_answer = test.correct_answer.lower()
 
-
             if user_answer == correct_answer:
                 messages.success(request, "Правильный ответ!")
                 user.completed_tests.append(test.id)
@@ -147,7 +139,6 @@ class TestTemplateView(TitleMixin, TemplateView):
                 messages.error(request, 'Неправильный ответ')
 
             return redirect("courses:test", pk=test.id)
-
 
 
 #                              Курсы
@@ -219,7 +210,6 @@ class CourseUpdateView(TitleMixin, SuccessMessageMixin, UpdateView):
         return context
 
 
-
 # Удаление курса
 class CourseDeleteView(TitleMixin, SuccessMessageMixin, DeleteView):
     title = "Удаление курса"
@@ -247,7 +237,7 @@ class CategoryCreateView(TitleMixin, SuccessMessageMixin, CreateView):
 class ChapterUpdateView(TitleMixin, SuccessMessageMixin, TemplateView):
     title = 'Редактирование главы'
     template_name = 'courses/teachers/update_chapter.html'
-    success_message = 'Глава успешно обновлена'
+
 
     def get_context_data(self, **kwargs):
         # Получаем объект главы
@@ -272,21 +262,18 @@ class ChapterUpdateView(TitleMixin, SuccessMessageMixin, TemplateView):
         chapter_form = ChapterForm(request.POST, instance=chapter)
         content_form = CreateContentForm(request.POST, request.FILES)
 
-        # Проверяем, что форма для главы валидна
         if 'update_chapter' in request.POST.dict() and chapter_form.is_valid():
             chapter_form.save()
+            messages.success(request, 'Название главы успешно обновлено')
+            return redirect(reverse_lazy('courses:edit_chapter', kwargs={'pk': chapter.id}))
 
-            return redirect(reverse_lazy('courses:edit_course', kwargs={'pk': chapter.course.id}))
 
-        # Проверяем, что форма для контента валидна
         if 'update_content' in request.POST.dict() and content_form.is_valid():
-            # Сохраняем/обновляем новый контент
-            content, created = Content.objects.get_or_create(chapter=chapter)
+            content, _ = Content.objects.get_or_create(chapter=chapter)
 
             content.text = content_form.cleaned_data.get('text')
             video = content_form.cleaned_data.get('video')
             files = content_form.cleaned_data.get('files')
-
 
             if 'video-clear' in request.POST:
                 content.video = None
@@ -301,16 +288,15 @@ class ChapterUpdateView(TitleMixin, SuccessMessageMixin, TemplateView):
             content.chapter = chapter
             content.save()
 
-
+            messages.success(request, 'Контент главы успешно обновлен')
             return redirect(reverse_lazy('courses:edit_chapter', kwargs={'pk': chapter.id}))
 
-        # # Если хотя бы одна форма не валидна, возвращаем данные и ошибки
+        # Если хотя бы одна форма не валидна, возвращаем данные и ошибки
         context = self.get_context_data()
         context['form'] = chapter_form
         context['content_form'] = content_form
 
         return self.render_to_response(context)
-
 
 
 #                                   Задания
@@ -338,9 +324,9 @@ class TaskCreateView(TitleMixin, SuccessMessageMixin, CreateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         if self.request.POST:
-            context['answer_formset'] = AnswerFormSet(self.request.POST)
+            context['answer_formset'] = AnswerFormUpdateSet(self.request.POST)
         else:
-            context['answer_formset'] = AnswerFormSet()
+            context['answer_formset'] = AnswerFormCreateSet()
         return context
 
     def form_valid(self, form):
@@ -352,7 +338,6 @@ class TaskCreateView(TitleMixin, SuccessMessageMixin, CreateView):
 
         if answer_formset.is_valid():
             answers = answer_formset.save(commit=False)
-
 
             # Проходим по всем ответам и сохраняем их
             for answer in answers:
@@ -373,9 +358,13 @@ class TaskUpdateView(TitleMixin, SuccessMessageMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        answer_formset = AnswerFormSet(instance=self.object)
-        task_form = CreateTaskForm(instance=self.object)
 
+        if self.request.method == 'GET':
+            answer_formset = AnswerFormCreateSet(instance=self.object)
+        else:
+            answer_formset = AnswerFormUpdateSet(instance=self.object)
+
+        task_form = CreateTaskForm(instance=self.object)
         context['answer_formset'] = answer_formset
         context['form'] = task_form
         return context
@@ -383,7 +372,7 @@ class TaskUpdateView(TitleMixin, SuccessMessageMixin, UpdateView):
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()  # Получаем задание
         task_form = self.get_form()
-        answer_formset = AnswerFormSet(request.POST, instance=self.object)
+        answer_formset = AnswerFormUpdateSet(request.POST, instance=self.object)
 
         if task_form.is_valid() and answer_formset.is_valid():
             task_form.save()
@@ -406,5 +395,66 @@ class TaskDeleteView(TitleMixin, SuccessMessageMixin, DeleteView):
 
 
 
+#                                Тесты
+
+# Просмотр тестов
+class TestListView(TitleMixin, ListView):
+    title = 'Просмотр тестов'
+    template_name = 'courses/teachers/tests/tests_list.html'
+    model = Chapter
+    context_object_name = 'courses'
+
+    def get_queryset(self):
+        # Предзагрузка заданий через связь ManyToMany в Test
+        tasks_prefetch = Prefetch(
+            "tasks",  # Используем правильное имя поля ManyToMany - "tasks"
+            queryset=Task.objects.all(),
+            to_attr="prefetched_tasks"
+        )
+
+        # Предзагрузка тестов и их заданий
+        tests_prefetch = Prefetch(
+            "test_set",
+            queryset=Test.objects.prefetch_related(tasks_prefetch),
+            to_attr="prefetched_tests"
+        )
+
+        # Предзагрузка глав и их тестов
+        chapters_prefetch = Prefetch(
+            "chapter_set",
+            queryset=Chapter.objects.prefetch_related(tests_prefetch),
+            to_attr="prefetched_chapters"
+        )
+
+        # Получаем основной queryset с предзагруженными главами, тестами и заданиями
+        queryset = Course.objects.prefetch_related(chapters_prefetch)
+
+        return queryset
+
+# Создание теста
+class TestCreateView(TitleMixin, SuccessMessageMixin, CreateView):
+    title = 'Создание теста'
+    template_name = 'courses/teachers/tests/create_test.html'
+    model = Test
+    form_class = CreateTestForm
+    success_url = reverse_lazy('courses:tests_list')
+    success_message = 'Тест успешно создан'
 
 
+    def form_valid(self, form):
+        test = form.save()
+
+        tasks = form.cleaned_data['tasks']
+        # Используем set() для установки связи с задачами
+        test.tasks.set(tasks)
+
+        return super().form_valid(form)
+
+
+# Удаление теста
+class TestDeleteView(TitleMixin, SuccessMessageMixin, DeleteView):
+    title = 'Удалить тест'
+    template_name = "courses/teachers/tests/test_confirm_delete.html"
+    model = Test
+    success_url = reverse_lazy('courses:tests_list')
+    success_message = 'Тест успешно удален'

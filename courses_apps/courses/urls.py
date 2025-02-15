@@ -2,7 +2,7 @@ from django.urls import path
 
 from courses_apps.courses.views import HomeTemplateView, CourseTemplateView, ChapterTemplateView, TestTemplateView, \
     CoursesListView, CourseCreateView, CategoryCreateView, CourseUpdateView, CourseDeleteView, ChapterUpdateView, \
-    TaskCreateView, TaskUpdateView, TaskListView, TaskDeleteView
+    TaskCreateView, TaskUpdateView, TaskListView, TaskDeleteView, TestListView, TestCreateView, TestDeleteView
 
 app_name = 'courses'
 
@@ -35,6 +35,13 @@ urlpatterns = [
     path("create_task/", TaskCreateView.as_view(), name="create_task"),
     path("edit_task/<int:pk>", TaskUpdateView.as_view(), name="edit_task"),
     path("delete_task/<int:pk>", TaskDeleteView.as_view(), name="delete_task"),
+
+    #                     Тесты
+    path("tests_list/", TestListView.as_view(), name="tests_list"),
+    path("create_test/", TestCreateView.as_view(), name="create_test"),
+    path("delete_test/<int:pk>", TestDeleteView.as_view(), name="delete_test"),
+
+
 
 
 

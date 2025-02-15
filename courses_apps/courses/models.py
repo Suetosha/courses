@@ -7,7 +7,6 @@ from courses_apps.users.models import User
 class Category(models.Model):
     name = models.CharField(max_length=50, null=False)
 
-
     def __str__(self):
         return self.name
 
@@ -22,6 +21,9 @@ class Course(models.Model):
     status = models.CharField(choices=STATUS_CHOICES)
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True)
 
+    def __str__(self):
+        return self.title
+
 
 class Subscription(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -33,6 +35,9 @@ class Chapter(models.Model):
     title = models.CharField(max_length=100, null=False)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
 
+    def __str__(self):
+        return self.title
+
 
 class Content(models.Model):
     text = models.TextField(null=True)
@@ -43,20 +48,29 @@ class Content(models.Model):
 
 class Test(models.Model):
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE)
-    task = models.ManyToManyField(
+    tasks = models.ManyToManyField(
         "Task",
-        blank=True
+        blank=True,
+        through='TestTask',
+        related_name="tests"
     )
 
+
+class Task(models.Model):
+    question = models.TextField(null=False)
+
+    def __str__(self):
+        return self.question
+
+
+class TestTask(models.Model):
+    test = models.ForeignKey(Test, on_delete=models.CASCADE)
+    task = models.ForeignKey(Task, on_delete=models.CASCADE)
 
 
 class Progress(models.Model):
     test = models.ForeignKey(Test, on_delete=models.CASCADE)
     subscription = models.ForeignKey(Subscription, on_delete=models.CASCADE)
-
-
-class Task(models.Model):
-    question = models.TextField(null=False)
 
 
 class Answer(models.Model):

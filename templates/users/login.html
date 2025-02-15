@@ -3,26 +3,17 @@
 
 {% block content %}
 
-<div class="container mt-5 col-md-3">
-    <form method="post">
-        {% csrf_token %}
-
-        <div class="row text-center">
-            <h4>Авторизация</h4>
-        </div>
-
-        <div class="mb-3">
+<div class="container d-flex justify-content-center align-items-center vh-100">
+    <div class="text-center col-md-4">
+        <form method="post" class="p-4 border rounded shadow bg-white">
+            {% csrf_token %}
+            <h4 class="mb-3">Авторизация</h4>
             {{ form.as_p }}
-        </div>
+            <input class="btn btn-primary w-100" type="submit" value="Продолжить">
+        </form>
 
-        <div class="text-center mt-5">
-            <input class='btn btn-primary' type="submit" href="{% url 'users:login' %}" value="Продолжить">
-        </div>
-    </form>
-
-    <div class="text-center mt-5">
-        <a class="btn btn-secondary" href="{% url 'users:registration' %}" role="button">Зарегистрироваться</a>
+        <a class="btn btn-secondary w-100 mt-3" href="{% url 'users:registration' %}">Зарегистрироваться</a>
     </div>
+</div>
 
-  </div>
 {% endblock %}
