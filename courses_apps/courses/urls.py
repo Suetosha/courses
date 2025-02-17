@@ -4,7 +4,7 @@ from courses_apps.courses.models import Subscription
 from courses_apps.courses.views import HomeTemplateView, CourseTemplateView, ChapterTemplateView, TestTemplateView, \
     CoursesListView, CourseCreateView, CategoryCreateView, CourseUpdateView, CourseDeleteView, ChapterUpdateView, \
     TaskCreateView, TaskUpdateView, TaskListView, TaskDeleteView, TestListView, TestCreateView, TestDeleteView, \
-    StudentListView, StudentCreateView, StudentDeleteView, SubscriptionListView
+    StudentListView, StudentCreateView, StudentDeleteView, SubscriptionListView, SubscriptionDeleteView
 
 app_name = 'courses'
 
@@ -50,9 +50,7 @@ urlpatterns = [
 
     #                     Подписки
     path("subscriptions/", SubscriptionListView.as_view(), name="subscriptions_list"),
-
-
-
-
+    path("delete_subscription/<int:course_id>/<int:group_id>/",
+         SubscriptionDeleteView.as_view(), name="subscription_delete"),
 
 ]

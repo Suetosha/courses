@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="container mt-4">
+        
+        <div class="d-flex justify-content-end mt-5">
+            <form method="POST">
+                <h2>Подписать группу на курс</h2>
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit" class="btn btn-primary">Подписаться</button>
+            </form>
+        </div>
+        
+        <h1>Список курсов и подписок</h1>
+        <table class="table table-bordered mt-4">
+            <thead class="table-light">
+                <tr>
+                    <th>Курс</th>
+                    <th>Группы</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for course, groups in subscriptions.items %}
+                <tr>
+                    <td>{{ course.title }}</td>
+                    <td>
+                        {% for group in groups %}
+                            <span class="badge bg-info mb-3">{{ group.number }} ({{ group.year }})</span>
+                            <a href="{% url 'courses:subscription_delete' course.id group.id %}" class="text-danger text-decoration-none">❌</a>                      
+                            <br>
+                        {% endfor %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

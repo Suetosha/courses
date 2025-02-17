@@ -15,7 +15,6 @@
                 <tr>
                     <th>Вопрос</th>
                     <th>Ответы</th>
-                    <th>Верный/Неверный</th>
                     <th>Действия</th>
                 </tr>
             </thead>
@@ -24,16 +23,9 @@
                     <tr>
                         <td>{{ task.question }}</td>
                         <td>
-                            <ul class="list-unstyled mb-0">
+                            <ul>
                                 {% for answer in task.answer_set.all %}
-                                    <li>{{ answer.text }}</li>
-                                {% endfor %}
-                            </ul>
-                        </td>
-                        <td>
-                            <ul class="list-unstyled mb-0">
-                                {% for answer in task.answer_set.all %}
-                                    <li>{% if answer.is_correct %} ✅ {% else %} ❌ {% endif %}</li>
+                                    <li>{{ answer.text }} {% if answer.is_correct %} ✅ {% else %} ❌ {% endif %}</li>
                                 {% endfor %}
                             </ul>
                         </td>

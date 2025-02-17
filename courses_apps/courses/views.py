@@ -10,6 +10,7 @@ from django.db.models import Prefetch
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
+from django.views import View
 
 from django.views.generic import TemplateView, ListView, FormView, UpdateView, DeleteView, CreateView
 
@@ -543,7 +544,7 @@ class StudentDeleteView(TitleMixin, SuccessMessageMixin, DeleteView):
 # Просмотр подписок, их создание
 class SubscriptionListView(TitleMixin, SuccessMessageMixin, ListView):
     title = "Подписки на курс"
-    template_name = "courses/teachers/groups/subscription_list.html"
+    template_name = "courses/teachers/subscriptions/subscription_list.html"
     model = Subscription
 
     def get_context_data(self, **kwargs):
@@ -552,6 +553,7 @@ class SubscriptionListView(TitleMixin, SuccessMessageMixin, ListView):
 
         # Загружаем все подписки с пользователями и их группами
         subscriptions = Subscription.objects.select_related('course', 'user').prefetch_related('user__groups')
+
         # Создаём словарь {course: [список групп]}
         course_groups = {}
         for sub in subscriptions:
@@ -572,10 +574,28 @@ class SubscriptionListView(TitleMixin, SuccessMessageMixin, ListView):
 
             students_by_group = User.objects.filter(groups=group)
 
-            for student in students_by_group:
-                if not Subscription.objects.filter(user=student, course=course).exists():
-                    Subscription.objects.create(user=student, course=course)
+            if students_by_group:
+                for student in students_by_group:
+                    if not Subscription.objects.filter(user=student, course=course).exists():
+                        Subscription.objects.create(user=student, course=course)
+                messages.success(request, 'Группа добавлена в курс')
+            else:
+                messages.error(request, 'В данной группе нет студентов')
             return redirect('courses:subscriptions_list')
 
 
 
+class SubscriptionDeleteView(TitleMixin, SuccessMessageMixin, View):
+    title = 'Удалить подписку группы на курс'
+    template_name = "courses/teachers/subscriptions/subscription_confirm_delete.html"
+    model = Subscription
+    success_url = reverse_lazy('courses:subscription_delete')
+    success_message = 'Подписка группы на курс удалена'
+
+
+    def get(self, request, course_id, group_id):
+        users_in_group = User.objects.filter(groups__id=group_id)
+
+        Subscription.objects.filter(course_id=course_id, user__in=users_in_group).delete()
+
+        return redirect('courses:subscriptions_list')
