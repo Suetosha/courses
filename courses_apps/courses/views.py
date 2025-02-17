@@ -8,7 +8,7 @@ from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db.models import Prefetch
 from django.http import HttpResponse
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 
 from django.views.generic import TemplateView, ListView, FormView, UpdateView, DeleteView, CreateView
@@ -483,7 +483,7 @@ class TestDeleteView(TitleMixin, SuccessMessageMixin, DeleteView):
 
 #                                 Студенты
 
-# Просмотр студентов
+# Просмотр студентов + функционал создания Excel
 class StudentListView(TitleMixin, ListView):
     title = 'Список студентов'
     template_name = 'courses/teachers/students/students_list.html'
@@ -536,4 +536,46 @@ class StudentDeleteView(TitleMixin, SuccessMessageMixin, DeleteView):
     model = User
     success_url = reverse_lazy('courses:students_list')
     success_message = 'Студент успешно удален'
+
+
+
+#                         Подписки
+# Просмотр подписок, их создание
+class SubscriptionListView(TitleMixin, SuccessMessageMixin, ListView):
+    title = "Подписки на курс"
+    template_name = "courses/teachers/groups/subscription_list.html"
+    model = Subscription
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form'] = SubscriptionForm()
+
+        # Загружаем все подписки с пользователями и их группами
+        subscriptions = Subscription.objects.select_related('course', 'user').prefetch_related('user__groups')
+        # Создаём словарь {course: [список групп]}
+        course_groups = {}
+        for sub in subscriptions:
+            if sub.course not in course_groups:
+                course_groups[sub.course] = set()
+            course_groups[sub.course].update(sub.user.groups.all())
+
+        context['subscriptions'] = {course: list(groups) for course, groups in course_groups.items()}
+
+        return context
+
+    def post(self, request, *args, **kwargs):
+        form = SubscriptionForm(request.POST)
+        if form.is_valid():
+            # Создаем подписку
+            course = form.cleaned_data['course']
+            group = form.cleaned_data['group']
+
+            students_by_group = User.objects.filter(groups=group)
+
+            for student in students_by_group:
+                if not Subscription.objects.filter(user=student, course=course).exists():
+                    Subscription.objects.create(user=student, course=course)
+            return redirect('courses:subscriptions_list')
+
+
 

@@ -24,9 +24,14 @@
           <ul class="nav me-auto">
               <li class="nav-item"><a href="{% url 'courses:tests_list' %}" class="nav-link link-dark px-2 active">Тесты</a></li>
           </ul>
+        
           <ul class="nav me-auto">
               <li class="nav-item"><a href="{% url 'courses:students_list' %}" class="nav-link link-dark px-2 active">Студенты</a></li>
-          </ul>        
+          </ul>     
+        
+          <ul class="nav me-auto">
+              <li class="nav-item"><a href="{% url 'courses:subscriptions_list' %}" class="nav-link link-dark px-2 active">Подписки на курс</a></li>
+          </ul>            
           {% if request.user.is_authenticated %}
               
             <ul class="nav">

@@ -37,7 +37,7 @@
                     {% for group in student.groups.all %}
                         <tr>
                             {% if forloop.first %}
-                                <td rowspan="{{ student.groups.count }}" class="align-middle">{{ student.username }}</td>  <!-- Логин студента -->
+                                <td rowspan="{{ student.groups.count }}" class="align-middle">{{ student.username }}</td>
                                 <td rowspan="{{ student.groups.count }}" class="align-middle">{{ student.last_name }}</td>
                                 <td rowspan="{{ student.groups.count }}" class="align-middle">{{ student.first_name }}</td>
                             {% endif %}

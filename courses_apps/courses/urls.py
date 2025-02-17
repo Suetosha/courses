@@ -1,9 +1,10 @@
 from django.urls import path
 
+from courses_apps.courses.models import Subscription
 from courses_apps.courses.views import HomeTemplateView, CourseTemplateView, ChapterTemplateView, TestTemplateView, \
     CoursesListView, CourseCreateView, CategoryCreateView, CourseUpdateView, CourseDeleteView, ChapterUpdateView, \
     TaskCreateView, TaskUpdateView, TaskListView, TaskDeleteView, TestListView, TestCreateView, TestDeleteView, \
-    StudentListView, StudentCreateView, StudentDeleteView
+    StudentListView, StudentCreateView, StudentDeleteView, SubscriptionListView
 
 app_name = 'courses'
 
@@ -45,8 +46,10 @@ urlpatterns = [
     #                     Студенты
     path("students_list/", StudentListView.as_view(), name="students_list"),
     path("create_student/", StudentCreateView.as_view(), name="create_student"),
-    path("delete_student/<int:pk>", StudentDeleteView.as_view(), name="delete_student")
+    path("delete_student/<int:pk>", StudentDeleteView.as_view(), name="delete_student"),
 
+    #                     Подписки
+    path("subscriptions/", SubscriptionListView.as_view(), name="subscriptions_list"),
 
 
 

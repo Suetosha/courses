@@ -338,6 +338,31 @@ class GroupSearchForm(forms.Form):
 
 
 
+class SubscriptionForm(forms.Form):
+    course = forms.ModelChoiceField(
+        label="Курс",
+        queryset=None,
+        required=True,
+        widget=forms.Select(attrs={'class': 'form-control', 'placeholder': 'Выберите курс'}
+    ))
+    group = forms.ModelChoiceField(
+        label="Группа",
+        queryset=None,
+        required=True,
+        widget=forms.Select(attrs={'class': 'form-control', 'placeholder': 'Выберите группу'}
+    ))
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        courses = Course.objects.all().order_by('title')
+        groups = Group.objects.all().order_by('number')
+
+        self.fields['course'].queryset = courses
+        self.fields['group'].queryset = groups
+
+
+
+
 
 
 
