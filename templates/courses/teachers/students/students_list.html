@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="container mt-4">
+        
+        <div class="d-flex justify-content-end mt-5">
+            <form method="post" class="mb-4">
+                <h3>Получить список студентов в Excel</h3>
+                {% csrf_token %}
+                {{ form.as_p }}
+                <h6>* Учитывайте, что существующие пароли студентов обновятся</h6>
+                <button type="submit" class="btn btn-success">Получить список в Excel</button>
+            </form>
+        </div>    
+
+        
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Список студентов</h1>
+            <div class="d-flex justify-content-end">
+                <a href="{% url 'courses:create_student' %}" class="btn btn-primary ms-5">Создать студента</a>    
+            </div>
+        </div>
+        
+        <table class="table table-bordered">
+            <thead class="table-light">
+                <tr>
+                    <th>Логин</th>  
+                    <th>Фамилия</th>
+                    <th>Имя</th>
+                    <th>Группа</th>
+                    <th>Год</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students %}
+                    {% for group in student.groups.all %}
+                        <tr>
+                            {% if forloop.first %}
+                                <td rowspan="{{ student.groups.count }}" class="align-middle">{{ student.username }}</td>  <!-- Логин студента -->
+                                <td rowspan="{{ student.groups.count }}" class="align-middle">{{ student.last_name }}</td>
+                                <td rowspan="{{ student.groups.count }}" class="align-middle">{{ student.first_name }}</td>
+                            {% endif %}
+                            <td>{{ group.number }}</td>
+                            <td>{{ group.year }}</td>
+                            <td>
+                                <a href="{% url 'courses:delete_student' student.id %}">🗑️</a>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td>{{ student.username }}</td>
+                            <td>{{ student.last_name }}</td>
+                            <td>{{ student.first_name }}</td>
+                            <td colspan="2" class="text-muted text-center">Нет группы</td>
+                        </tr>
+                    {% endfor %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
+

@@ -1,7 +1,11 @@
 from django import forms
 from django.forms import inlineformset_factory
 
+import secrets
+import string
+
 from courses_apps.courses.models import Course, Category, Chapter, Content, Task, Answer, Test
+from courses_apps.users.models import User, Group
 
 
 class AnswerForm(forms.Form):
@@ -222,6 +226,116 @@ class CreateTestForm(forms.ModelForm):
         required=False,
         label="Задания"
     )
+
+
+# Создание студента
+class CreateStudentForm(forms.ModelForm):
+    username = forms.CharField(
+        label="Логин студента",
+        widget=forms.TextInput(attrs={'class': "form-control", 'readonly': 'readonly'})
+    )
+
+    password1 = forms.CharField(
+        label='Пароль',
+        required=False,
+        widget=forms.TextInput(attrs={'class': "form-control", 'readonly': 'readonly'})
+    )
+
+    first_name = forms.CharField(
+        label="Имя", required=False,
+        widget=forms.TextInput(attrs={'class': "form-control py-4", 'placeholder': "Введите имя"})
+    )
+
+    last_name = forms.CharField(
+        label="Фамилия", required=False,
+        widget=forms.TextInput(attrs={'class': "form-control py-4", 'placeholder': "Введите фамилию"})
+    )
+
+    group_number = forms.CharField(
+        label='Номер группы',
+        required=True,
+        widget=forms.TextInput(attrs={'class': "form-control py-4", 'placeholder': "Введите номер группы"})
+    )
+
+    year = forms.IntegerField(
+        label='Год',
+        required=True,
+        widget=forms.NumberInput(attrs={'class': "form-control", 'placeholder': "Введите год"})
+    )
+
+    class Meta:
+        model = User
+        fields = ['username', 'password1', 'first_name', 'last_name']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Генерация логина
+        self.fields['username'].initial = self.generate_username()
+
+        # Генерация пароля
+        self.fields['password1'].initial = self.generate_password()
+
+    def generate_username(self):
+        """Генерация уникального логина"""
+        return f"stu{secrets.token_hex(4)}"  # Пример: stu3f7a2b5c
+
+    def generate_password(self, length=8):
+        """Генерация случайного пароля"""
+        alphabet = string.ascii_letters + string.digits
+        return ''.join(secrets.choice(alphabet) for _ in range(length))
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.role = 'student'
+
+        # Устанавливаем username и пароль
+        user.username = self.cleaned_data['username']
+        password = self.cleaned_data['password1']
+
+        user.set_password(password)
+        user.set_password(password)
+
+        # Сохраняем пользователя, чтобы получить id
+        if commit:
+            user.save()
+
+        # Получаем номер группы и год
+        group_number = self.cleaned_data.get('group_number')
+        year = self.cleaned_data.get('year')
+
+        # Создаем или находим группу
+        group, _ = Group.objects.get_or_create(number=group_number, year=year)
+
+        # Добавляем пользователя в группу ПОСЛЕ сохранения
+        user.groups.add(group)
+
+        return user
+
+
+class GroupSearchForm(forms.Form):
+    group_number = forms.ChoiceField(
+        label='Номер группы',
+        choices=[],
+        widget=forms.Select(attrs={'class': 'form-control', 'placeholder': 'Выберите номер группы'})
+    )
+    year = forms.ChoiceField(
+        label='Год',
+        choices=[],
+        widget=forms.Select(attrs={'class': 'form-control', 'placeholder': 'Выберите год'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Получаем уникальные номера групп и года
+        group_numbers = Group.objects.values_list('number', flat=True).distinct().order_by('number')
+        years = Group.objects.values_list('year', flat=True).distinct().order_by('year')
+
+        # Добавляем эти значения в поля
+        self.fields['group_number'].choices = [(num, num) for num in group_numbers]
+        self.fields['year'].choices = [(year, year) for year in years]
+
 
 
 

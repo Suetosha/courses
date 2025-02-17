@@ -2,7 +2,8 @@ from django.urls import path
 
 from courses_apps.courses.views import HomeTemplateView, CourseTemplateView, ChapterTemplateView, TestTemplateView, \
     CoursesListView, CourseCreateView, CategoryCreateView, CourseUpdateView, CourseDeleteView, ChapterUpdateView, \
-    TaskCreateView, TaskUpdateView, TaskListView, TaskDeleteView, TestListView, TestCreateView, TestDeleteView
+    TaskCreateView, TaskUpdateView, TaskListView, TaskDeleteView, TestListView, TestCreateView, TestDeleteView, \
+    StudentListView, StudentCreateView, StudentDeleteView
 
 app_name = 'courses'
 
@@ -16,7 +17,7 @@ urlpatterns = [
     path("chapter/<int:pk>", ChapterTemplateView.as_view(), name='chapter'),
     path("tasks/<int:pk>", TestTemplateView.as_view(), name='test'),
 
-    # Для преподавателей
+    #               Для преподавателей
 
     #                     Курсы
     path("courses_list/", CoursesListView.as_view(), name='courses_list'),
@@ -41,6 +42,10 @@ urlpatterns = [
     path("create_test/", TestCreateView.as_view(), name="create_test"),
     path("delete_test/<int:pk>", TestDeleteView.as_view(), name="delete_test"),
 
+    #                     Студенты
+    path("students_list/", StudentListView.as_view(), name="students_list"),
+    path("create_student/", StudentCreateView.as_view(), name="create_student"),
+    path("delete_student/<int:pk>", StudentDeleteView.as_view(), name="delete_student")
 
 
 

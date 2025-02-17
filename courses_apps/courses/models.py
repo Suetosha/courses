@@ -47,7 +47,7 @@ class Content(models.Model):
 
 
 class Test(models.Model):
-    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE)
+    chapter = models.OneToOneField(Chapter, on_delete=models.CASCADE)
     tasks = models.ManyToManyField(
         "Task",
         blank=True,
@@ -68,9 +68,15 @@ class TestTask(models.Model):
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
 
 
-class Progress(models.Model):
-    test = models.ForeignKey(Test, on_delete=models.CASCADE)
+class ChapterProgress(models.Model):
+    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE)
     subscription = models.ForeignKey(Subscription, on_delete=models.CASCADE)
+    is_completed = models.BooleanField(default=False)
+
+
+class TaskProgress(models.Model):
+    test_task = models.ForeignKey(TestTask, on_delete=models.CASCADE)
+    chapter_progress = models.ForeignKey(ChapterProgress, on_delete=models.CASCADE)
 
 
 class Answer(models.Model):

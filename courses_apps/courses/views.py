@@ -1,13 +1,21 @@
+
+import random
+import string
+from django.contrib.auth.hashers import make_password
+
+import openpyxl
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db.models import Prefetch
+from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 
 from django.views.generic import TemplateView, ListView, FormView, UpdateView, DeleteView, CreateView
 
 from courses_apps.courses.forms import *
-from courses_apps.courses.models import Course, Category, Chapter, Content, Test, Task, TestTask
+from courses_apps.courses.models import *
+from courses_apps.utils.generate_students_excel import generate_excel
 from courses_apps.utils.mixins import TitleMixin
 
 
@@ -45,7 +53,17 @@ class CourseTemplateView(TitleMixin, TemplateView):
 
         for chapter in chapters:
             tests = Test.objects.filter(chapter=chapter)
-            chapter.completed_tests_count = sum(1 for test in tests if test.id in request.user.completed_tests)
+
+            # Получаем подписку пользователя (например, через связь с User)
+            subscription = Subscription.objects.filter(user=request.user, course=course).first()
+
+            # Проверяем количество пройденных тестов для главы через Progress
+            if subscription:
+                chapter.completed_tests_count = ChapterProgress.objects.filter(
+                    subscription=subscription,
+                    test__in=tests
+                ).count()
+
             chapter.total_tests_count = tests.count()
 
         # Первая глава всегда доступна
@@ -57,10 +75,12 @@ class CourseTemplateView(TitleMixin, TemplateView):
             current_chapter = chapters[i]
 
             prev_tests = Test.objects.filter(chapter=prev_chapter)
-            prev_completed_count = sum(1 for test in prev_tests if test.id in request.user.completed_tests)
+            prev_completed_count = ChapterProgress.objects.filter(
+                subscription=subscription,
+                test__in=prev_tests
+            ).count()
 
             # Текущая глава доступна, если предыдущая полностью пройдена
-
             current_chapter.is_accessible = prev_completed_count == prev_tests.count()
 
         context['course'] = course
@@ -224,7 +244,7 @@ class CourseDeleteView(TitleMixin, SuccessMessageMixin, DeleteView):
 # Создание категорий
 class CategoryCreateView(TitleMixin, SuccessMessageMixin, CreateView):
     title = "Создание категории"
-    template_name = "courses/teachers/create_category.html"
+    template_name = "courses/teachers/courses/create_category.html"
     form_class = CreateCategoryForm
     model = Category
     success_url = reverse_lazy('courses:courses_list')
@@ -236,7 +256,7 @@ class CategoryCreateView(TitleMixin, SuccessMessageMixin, CreateView):
 # Создание глав
 class ChapterUpdateView(TitleMixin, SuccessMessageMixin, TemplateView):
     title = 'Редактирование главы'
-    template_name = 'courses/teachers/update_chapter.html'
+    template_name = 'courses/teachers/courses/update_chapter.html'
 
 
     def get_context_data(self, **kwargs):
@@ -405,18 +425,18 @@ class TestListView(TitleMixin, ListView):
     context_object_name = 'courses'
 
     def get_queryset(self):
-        # Предзагрузка заданий через связь ManyToMany в Test
+        # Предзагрузка задач в тестах
         tasks_prefetch = Prefetch(
-            "tasks",  # Используем правильное имя поля ManyToMany - "tasks"
+            "tasks",
             queryset=Task.objects.all(),
             to_attr="prefetched_tasks"
         )
 
         # Предзагрузка тестов и их заданий
         tests_prefetch = Prefetch(
-            "test_set",
+            "test",
             queryset=Test.objects.prefetch_related(tasks_prefetch),
-            to_attr="prefetched_tests"
+            to_attr="prefetched_test"
         )
 
         # Предзагрузка глав и их тестов
@@ -430,6 +450,7 @@ class TestListView(TitleMixin, ListView):
         queryset = Course.objects.prefetch_related(chapters_prefetch)
 
         return queryset
+
 
 # Создание теста
 class TestCreateView(TitleMixin, SuccessMessageMixin, CreateView):
@@ -458,3 +479,61 @@ class TestDeleteView(TitleMixin, SuccessMessageMixin, DeleteView):
     model = Test
     success_url = reverse_lazy('courses:tests_list')
     success_message = 'Тест успешно удален'
+
+
+#                                 Студенты
+
+# Просмотр студентов
+class StudentListView(TitleMixin, ListView):
+    title = 'Список студентов'
+    template_name = 'courses/teachers/students/students_list.html'
+    model = User
+    context_object_name = 'students'
+
+    def get_queryset(self):
+        queryset = User.objects.filter(role="student").prefetch_related("groups")
+        group_number = self.request.GET.get('group_number')
+        year = self.request.GET.get('year')
+
+        if group_number and year:
+            group = Group.objects.filter(number=group_number, year=year).first()
+            if group:
+                queryset = queryset.filter(groups=group)
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        form = GroupSearchForm(self.request.GET or None)
+        context['form'] = form
+        return context
+
+
+    def post(self, request, *args, **kwargs):
+        form = GroupSearchForm(request.POST)
+        if form.is_valid():
+            group_number = form.cleaned_data['group_number']
+            year = form.cleaned_data['year']
+            return generate_excel(group_number, year)
+        return self.get(request, *args, **kwargs)
+
+
+
+# Создание студентов
+class StudentCreateView(TitleMixin, SuccessMessageMixin, CreateView):
+    title = 'Создание студента'
+    template_name = 'courses/teachers/students/create_student.html'
+    model = User
+    form_class = CreateStudentForm
+    success_url = reverse_lazy('courses:students_list')
+    success_message = 'Студент успешно создан'
+
+
+# Удаление студента
+class StudentDeleteView(TitleMixin, SuccessMessageMixin, DeleteView):
+    title = 'Удалить студента'
+    template_name = "courses/teachers/students/student_confirm_delete.html"
+    model = User
+    success_url = reverse_lazy('courses:students_list')
+    success_message = 'Студент успешно удален'
+
