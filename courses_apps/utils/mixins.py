@@ -16,23 +16,6 @@ class TitleMixin:
 
 
 
-# Миксин для проверки наличия группы у пользователя
-class GroupRequiredMixin(LoginRequiredMixin):
-
-    def dispatch(self, request, *args, **kwargs):
-
-        # Перенаправляет на страницу логин
-        if not request.user.is_authenticated:
-            return self.handle_no_permission()
-
-        # Если студент не ввел номер группы, то перенаправляет на страницу с профилем
-        Group.objects.filter(user=request.user).exists()
-        if not request.user.group.number:
-            messages.error(request, "Пожалуйста, укажите вашу группу в профиле.")
-            return redirect("users:profile", request.user.id)
-        return super().dispatch(request, *args, **kwargs)
-
-
 # Миксин для проверки наличия подписки на данный курс
 class SubscriptionRequiredMixin(LoginRequiredMixin):
 
@@ -43,12 +26,10 @@ class SubscriptionRequiredMixin(LoginRequiredMixin):
         course_id = kwargs.get("course_id")
         course = Course.objects.filter(id=course_id).first()
         is_sub_exist = Subscription.objects.filter(course=course).exists()
-        print(course, is_sub_exist)
-        print(kwargs)
 
         # Если курс не найден или нет подписки — редирект на список курсов
         if not course or not Subscription.objects.filter(course=course).exists():
-            messages.error(request, "У вас нет доступа к этому курсу. Оформите подписку.")
+            messages.error(request, "У вас нет доступа к этому курсу")
             return redirect("courses:home")
 
         return super().dispatch(request, *args, **kwargs)

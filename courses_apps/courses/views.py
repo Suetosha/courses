@@ -1,14 +1,8 @@
-
-import random
-import string
-from django.contrib.auth.hashers import make_password
-
-import openpyxl
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db.models import Prefetch
-from django.http import HttpResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views import View
 
@@ -20,7 +14,7 @@ from courses_apps.utils.generate_students_excel import generate_excel
 from courses_apps.utils.mixins import TitleMixin
 
 
-class HomeTemplateView(TitleMixin, TemplateView):
+class HomeTemplateView(LoginRequiredMixin, TitleMixin, TemplateView):
     template_name = "courses/students/home.html"
     title = "Курсы"
 
@@ -42,7 +36,7 @@ class HomeTemplateView(TitleMixin, TemplateView):
         return self.render_to_response(context)
 
 
-class CourseTemplateView(TitleMixin, TemplateView):
+class CourseTemplateView(LoginRequiredMixin, TitleMixin, TemplateView):
     template_name = "courses/students/course.html"
     title = "Страница курса"
 
@@ -89,7 +83,7 @@ class CourseTemplateView(TitleMixin, TemplateView):
         return self.render_to_response(context)
 
 
-class ChapterTemplateView(TitleMixin, TemplateView):
+class ChapterTemplateView(LoginRequiredMixin, TitleMixin, TemplateView):
     template_name = "courses/students/chapter.html"
     title = "Глава"
 
@@ -118,7 +112,7 @@ class ChapterTemplateView(TitleMixin, TemplateView):
         return self.render_to_response(context)
 
 
-class TestTemplateView(TitleMixin, TemplateView):
+class TestTemplateView(LoginRequiredMixin, TitleMixin, TemplateView):
     template_name = "courses/students/test.html"
     title = "Тест"
     form_class = AnswerForm
@@ -165,15 +159,20 @@ class TestTemplateView(TitleMixin, TemplateView):
 #                              Курсы
 
 # Просмотр курсов
-class CoursesListView(TitleMixin, ListView):
+class CoursesListView(LoginRequiredMixin, TitleMixin, ListView):
     template_name = "courses/teachers/courses/courses_list.html"
     title = "Просмотр курсов"
     model = Course
     context_object_name = 'courses'
 
+    def get_context_data(self,*args, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['categories'] = Category.objects.all()
+        return context
+
 
 # Создание курсов
-class CourseCreateView(TitleMixin, SuccessMessageMixin, FormView):
+class CourseCreateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, FormView):
     title = "Создание курса"
     template_name = "courses/teachers/courses/create_course.html"
     form_class = CreateCourseForm
@@ -209,7 +208,7 @@ class CourseCreateView(TitleMixin, SuccessMessageMixin, FormView):
 
 
 # Редактирование курса
-class CourseUpdateView(TitleMixin, SuccessMessageMixin, UpdateView):
+class CourseUpdateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, UpdateView):
     title = "Редактирование курса"
     template_name = "courses/teachers/courses/update_course.html"
     model = Course
@@ -232,7 +231,7 @@ class CourseUpdateView(TitleMixin, SuccessMessageMixin, UpdateView):
 
 
 # Удаление курса
-class CourseDeleteView(TitleMixin, SuccessMessageMixin, DeleteView):
+class CourseDeleteView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, DeleteView):
     title = "Удаление курса"
     template_name = "courses/teachers/courses/course_confirm_delete.html"
     model = Course
@@ -243,7 +242,7 @@ class CourseDeleteView(TitleMixin, SuccessMessageMixin, DeleteView):
 #                               Категории
 
 # Создание категорий
-class CategoryCreateView(TitleMixin, SuccessMessageMixin, CreateView):
+class CategoryCreateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, CreateView):
     title = "Создание категории"
     template_name = "courses/teachers/courses/create_category.html"
     form_class = CreateCategoryForm
@@ -252,10 +251,19 @@ class CategoryCreateView(TitleMixin, SuccessMessageMixin, CreateView):
     success_message = "Категория успешно создана"
 
 
-#                               Главы
+# Удалить категорию
+class CategoryDeleteView(LoginRequiredMixin, DeleteView):
+    model = Category
+    success_url = reverse_lazy('courses:courses_list')
+
+    def get(self, request, *args, **kwargs):
+        return self.delete(request, *args, **kwargs)
+
+
+#                              Главы
 
 # Создание глав
-class ChapterUpdateView(TitleMixin, SuccessMessageMixin, TemplateView):
+class ChapterUpdateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, TemplateView):
     title = 'Редактирование главы'
     template_name = 'courses/teachers/courses/update_chapter.html'
 
@@ -323,7 +331,7 @@ class ChapterUpdateView(TitleMixin, SuccessMessageMixin, TemplateView):
 #                                   Задания
 
 # Просмотр заданий
-class TaskListView(TitleMixin, ListView):
+class TaskListView(LoginRequiredMixin, TitleMixin, ListView):
     title = "Просмотр заданий"
     template_name = "courses/teachers/tasks/tasks_list.html"
     model = Task
@@ -334,7 +342,7 @@ class TaskListView(TitleMixin, ListView):
 
 
 # Создание задания
-class TaskCreateView(TitleMixin, SuccessMessageMixin, CreateView):
+class TaskCreateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, CreateView):
     title = 'Создание задания'
     template_name = "courses/teachers/tasks/create_task.html"
     model = Task
@@ -369,7 +377,7 @@ class TaskCreateView(TitleMixin, SuccessMessageMixin, CreateView):
 
 
 # Редактирование задания
-class TaskUpdateView(TitleMixin, SuccessMessageMixin, UpdateView):
+class TaskUpdateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, UpdateView):
     title = 'Редактировать задание'
     model = Task
     template_name = "courses/teachers/tasks/update_task.html"
@@ -407,19 +415,19 @@ class TaskUpdateView(TitleMixin, SuccessMessageMixin, UpdateView):
 
 
 # Удаление задания
-class TaskDeleteView(TitleMixin, SuccessMessageMixin, DeleteView):
-    title = 'Удалить задание'
-    template_name = "courses/teachers/tasks/task_confirm_delete.html"
+class TaskDeleteView(LoginRequiredMixin, DeleteView):
     model = Task
     success_url = reverse_lazy('courses:tasks_list')
-    success_message = 'Задание успешно удалено'
+
+    def get(self, request, *args, **kwargs):
+        return self.delete(request, *args, **kwargs)
 
 
 
 #                                Тесты
 
 # Просмотр тестов
-class TestListView(TitleMixin, ListView):
+class TestListView(LoginRequiredMixin,TitleMixin, ListView):
     title = 'Просмотр тестов'
     template_name = 'courses/teachers/tests/tests_list.html'
     model = Chapter
@@ -454,7 +462,7 @@ class TestListView(TitleMixin, ListView):
 
 
 # Создание теста
-class TestCreateView(TitleMixin, SuccessMessageMixin, CreateView):
+class TestCreateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, CreateView):
     title = 'Создание теста'
     template_name = 'courses/teachers/tests/create_test.html'
     model = Test
@@ -474,18 +482,18 @@ class TestCreateView(TitleMixin, SuccessMessageMixin, CreateView):
 
 
 # Удаление теста
-class TestDeleteView(TitleMixin, SuccessMessageMixin, DeleteView):
-    title = 'Удалить тест'
-    template_name = "courses/teachers/tests/test_confirm_delete.html"
+class TestDeleteView(LoginRequiredMixin, DeleteView):
     model = Test
     success_url = reverse_lazy('courses:tests_list')
-    success_message = 'Тест успешно удален'
+
+    def get(self, request, *args, **kwargs):
+        return self.delete(request, *args, **kwargs)
 
 
 #                                 Студенты
 
 # Просмотр студентов + функционал создания Excel
-class StudentListView(TitleMixin, ListView):
+class StudentListView(LoginRequiredMixin, TitleMixin, ListView):
     title = 'Список студентов'
     template_name = 'courses/teachers/students/students_list.html'
     model = User
@@ -521,7 +529,7 @@ class StudentListView(TitleMixin, ListView):
 
 
 # Создание студентов
-class StudentCreateView(TitleMixin, SuccessMessageMixin, CreateView):
+class StudentCreateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, CreateView):
     title = 'Создание студента'
     template_name = 'courses/teachers/students/create_student.html'
     model = User
@@ -531,7 +539,7 @@ class StudentCreateView(TitleMixin, SuccessMessageMixin, CreateView):
 
 
 # Удаление студента
-class StudentDeleteView(TitleMixin, SuccessMessageMixin, DeleteView):
+class StudentDeleteView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, DeleteView):
     title = 'Удалить студента'
     template_name = "courses/teachers/students/student_confirm_delete.html"
     model = User
@@ -542,7 +550,7 @@ class StudentDeleteView(TitleMixin, SuccessMessageMixin, DeleteView):
 
 #                         Подписки
 # Просмотр подписок, их создание
-class SubscriptionListView(TitleMixin, SuccessMessageMixin, ListView):
+class SubscriptionListView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, ListView):
     title = "Подписки на курс"
     template_name = "courses/teachers/subscriptions/subscription_list.html"
     model = Subscription
@@ -585,17 +593,14 @@ class SubscriptionListView(TitleMixin, SuccessMessageMixin, ListView):
 
 
 
-class SubscriptionDeleteView(TitleMixin, SuccessMessageMixin, View):
+class SubscriptionDeleteView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, View):
     title = 'Удалить подписку группы на курс'
-    template_name = "courses/teachers/subscriptions/subscription_confirm_delete.html"
     model = Subscription
     success_url = reverse_lazy('courses:subscription_delete')
     success_message = 'Подписка группы на курс удалена'
 
-
-    def get(self, request, course_id, group_id):
+    @staticmethod
+    def get(request, course_id, group_id):
         users_in_group = User.objects.filter(groups__id=group_id)
-
         Subscription.objects.filter(course_id=course_id, user__in=users_in_group).delete()
-
         return redirect('courses:subscriptions_list')

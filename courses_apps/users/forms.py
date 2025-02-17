@@ -1,5 +1,6 @@
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, UserChangeForm
 from django import forms
+from django.template.context_processors import request
 
 from courses_apps.users.models import User, Group
 
@@ -36,11 +37,11 @@ class UserRegistrationForm(UserCreationForm):
     last_name = forms.CharField(label='Фамилия', widget=forms.TextInput(attrs={
         'class': "form-control", 'placeholder': "Введите фамилию"}))
 
-    group_number = forms.CharField(label='Номер группы', required=True, widget=forms.TextInput(attrs={
+    group_number = forms.CharField(label='Номер группы', widget=forms.TextInput(attrs={
         'class': "form-control", 'placeholder': "Введите номер группы"
     }))
 
-    year = forms.CharField(label='Год', required=True, widget=forms.TextInput(attrs={
+    year = forms.CharField(label='Год', widget=forms.TextInput(attrs={
         'class': "form-control", 'placeholder': "Введите год"
     }))
 
@@ -73,6 +74,13 @@ class UserRegistrationForm(UserCreationForm):
 class UserProfileForm(UserChangeForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        print(kwargs)
+        user = kwargs.pop('instance', None)
+        group = user.groups.first()
+        if group:
+            self.fields["group_number"].initial = group.number
+            self.fields["year"].initial = group.year
+
         for field in self.fields.values():
             field.help_text = ''
         if "password" in self.fields:
@@ -80,10 +88,10 @@ class UserProfileForm(UserChangeForm):
 
 
     first_name = forms.CharField(label="Имя", required=False, widget=forms.TextInput(attrs={
-        'class': "form-control py-4", 'placeholder': "Введите имя"}))
+        'class': "form-control py-4", 'placeholder': "Введите имя", 'readonly': 'readonly'}))
 
     last_name = forms.CharField(label="Фамилия", required=False, widget=forms.TextInput(attrs={
-        'class': "form-control py-4", 'placeholder': "Введите фамилию"}))
+        'class': "form-control py-4", 'placeholder': "Введите фамилию", 'readonly': 'readonly'}))
 
     password1 = forms.CharField(label='Пароль', required=False, widget=forms.PasswordInput(attrs={
         'class': "form-control py-4", 'placeholder': "Введите пароль"}))
@@ -92,11 +100,11 @@ class UserProfileForm(UserChangeForm):
         'class': "form-control py-4", 'placeholder': "Повторите пароль"}))
 
     group_number = forms.CharField(label='Номер группы', required=True, widget=forms.TextInput(attrs={
-        'class': "form-control py-4", 'placeholder': "Введите номер группы"
+        'class': "form-control py-4", 'placeholder': "Введите номер группы", 'readonly': 'readonly'
     }))
 
     year = forms.CharField(label='Год', required=True, widget=forms.TextInput(attrs={
-        'class': "form-control", 'placeholder': "Введите год"
+        'class': "form-control", 'placeholder': "Введите год", 'readonly': 'readonly'
     }))
 
 

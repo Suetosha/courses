@@ -8,32 +8,39 @@
 
 <body>
     <nav class="py-2 bg-light border-bottom">
-        <div class="container d-flex flex-wrap">
+        <div class="container d-flex flex-wrap mt-3">
+        
+        {% if request.user.role == "student" %}
           <ul class="nav me-auto">
               <li class="nav-item"><a href="{% url 'courses:home' %}" class="nav-link link-dark px-2 active">Курсы</a></li>
           </ul>
+        {% endif %}
         
-          <ul class="nav me-auto">
-              <li class="nav-item"><a href="{% url 'courses:courses_list' %}" class="nav-link link-dark px-2 active">Курсы</a></li>
-          </ul>
+        {% if request.user.role == "teacher" %}
+            
+              <ul class="nav me-auto">
+                  <li class="nav-item"><a href="{% url 'courses:courses_list' %}" class="nav-link link-dark px-2 active">Курсы</a></li>
+              </ul>
+            
+              <ul class="nav me-auto">
+                  <li class="nav-item"><a href="{% url 'courses:tasks_list' %}" class="nav-link link-dark px-2 active">Задания</a></li>
+              </ul>
+            
+              <ul class="nav me-auto">
+                  <li class="nav-item"><a href="{% url 'courses:tests_list' %}" class="nav-link link-dark px-2 active">Тесты</a></li>
+              </ul>
+            
+              <ul class="nav me-auto">
+                  <li class="nav-item"><a href="{% url 'courses:students_list' %}" class="nav-link link-dark px-2 active">Студенты</a></li>
+              </ul>     
+            
+              <ul class="nav me-auto">
+                  <li class="nav-item"><a href="{% url 'courses:subscriptions_list' %}" class="nav-link link-dark px-2 active">Подписки на курс</a></li>
+              </ul>
+            
+        {% endif %}  
         
-          <ul class="nav me-auto">
-              <li class="nav-item"><a href="{% url 'courses:tasks_list' %}" class="nav-link link-dark px-2 active">Задания</a></li>
-          </ul>
-        
-          <ul class="nav me-auto">
-              <li class="nav-item"><a href="{% url 'courses:tests_list' %}" class="nav-link link-dark px-2 active">Тесты</a></li>
-          </ul>
-        
-          <ul class="nav me-auto">
-              <li class="nav-item"><a href="{% url 'courses:students_list' %}" class="nav-link link-dark px-2 active">Студенты</a></li>
-          </ul>     
-        
-          <ul class="nav me-auto">
-              <li class="nav-item"><a href="{% url 'courses:subscriptions_list' %}" class="nav-link link-dark px-2 active">Подписки на курс</a></li>
-          </ul>            
-          {% if request.user.is_authenticated %}
-              
+        {% if request.user.is_authenticated %}             
             <ul class="nav">
                 <li class="nav-item">
                     <a href="{% url 'users:profile' user.id %}" class="nav-link link-dark px-2 active">Профиль</a>
@@ -45,16 +52,17 @@
                         <button type="submit" class="nav-link link-dark px-2 active">Выйти</button>
                     </form>
                 </li>
-            </ul>
+            </ul>  
+            
+        {% else %}
               
-          {% else %}
-              
-              <ul class="nav">
+            <ul class="nav">
                 <li class="nav-item"><a href="{% url 'users:login' %}" class="nav-link link-dark px-2 active">Вход</a></li>
                 <li class="nav-item"><a href="{% url 'users:registration' %}" class="nav-link link-dark px-2 active">Регистрация</a></li>
-              </ul>
+            </ul>
               
-          {% endif %}
+        {% endif %}
+        
         </div>
     </nav>
     

@@ -1,10 +1,5 @@
 from django.urls import path
-
-from courses_apps.courses.models import Subscription
-from courses_apps.courses.views import HomeTemplateView, CourseTemplateView, ChapterTemplateView, TestTemplateView, \
-    CoursesListView, CourseCreateView, CategoryCreateView, CourseUpdateView, CourseDeleteView, ChapterUpdateView, \
-    TaskCreateView, TaskUpdateView, TaskListView, TaskDeleteView, TestListView, TestCreateView, TestDeleteView, \
-    StudentListView, StudentCreateView, StudentDeleteView, SubscriptionListView, SubscriptionDeleteView
+from courses_apps.courses.views import *
 
 app_name = 'courses'
 
@@ -28,6 +23,7 @@ urlpatterns = [
 
     #                     Категории
     path("create_category/", CategoryCreateView.as_view(), name="create_category"),
+    path("delete_category/<int:pk>/", CategoryDeleteView.as_view(), name="delete_category"),
 
     #                     Главы
     path("edit_chapter/<int:pk>", ChapterUpdateView.as_view(), name="edit_chapter"),
