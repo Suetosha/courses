@@ -4,9 +4,24 @@
     <meta charset="utf-8">
     <title>{{ title }}</title>
     <link href="{% static 'main/css/bootstrap.min.css' %}" rel="stylesheet" />
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+        
+        .content {
+            flex: 1;
+        }
+
+        footer {
+            background-color: #f8f9fa;
+            padding: 20px 0;
+        }
+    </style>
 </head>
 
-<body>
+<body class="d-flex flex-column">
     <nav class="py-2 bg-light border-bottom">
         <div class="container d-flex flex-wrap mt-3">
         
@@ -56,6 +71,7 @@
             
         {% else %}
               
+        
             <ul class="nav">
                 <li class="nav-item"><a href="{% url 'users:login' %}" class="nav-link link-dark px-2 active">Вход</a></li>
                 <li class="nav-item"><a href="{% url 'users:registration' %}" class="nav-link link-dark px-2 active">Регистрация</a></li>
@@ -74,6 +90,14 @@
         {% endfor %}
     {% endif %}
     
-    {% block content %}
-    {% endblock %}
+    <div class="content">
+        {% block content %}
+        {% endblock %}
+    </div>
+
+
+    <footer class="bg-light py-4 mt-5">
+    </footer>
+
 </body>
+

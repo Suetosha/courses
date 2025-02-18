@@ -12,17 +12,16 @@
     
 <div class="d-flex flex-wrap justify-content-center gap-3 mt-5">
     {% for chapter in chapters %}
-        <div class="card 
-            {% if chapter.completed_tests_count == chapter.total_tests_count and chapter.total_tests_count != 0%}completed-chapter{% endif %}" style="width: 18rem;">
+        <div class="card">
             <div class="card-body">
                 <h5 class="card-title">{{ chapter.title }}</h5>
                 <p>
                     Выполнено тестов:
-                    {{ chapter.completed_tests_count }} / {{ chapter.total_tests_count }}
+                    {{ chapter.completed_tasks_count }} / {{ chapter.total_tasks }}
                 </p>
 
                 {% if chapter.is_accessible %}
-                    <a href="{% url 'courses:chapter' chapter.id %}" class="card-link">Перейти</a>
+                    <a href="{% url 'courses:chapter' course.id chapter.id %}" class="card-link">Перейти</a>
                 {% endif %}
             </div>
         </div>

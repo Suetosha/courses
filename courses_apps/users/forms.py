@@ -74,7 +74,6 @@ class UserRegistrationForm(UserCreationForm):
 class UserProfileForm(UserChangeForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        print(kwargs)
         user = kwargs.pop('instance', None)
         group = user.groups.first()
         if group:

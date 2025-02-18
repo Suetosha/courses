@@ -41,42 +41,46 @@ class CourseTemplateView(LoginRequiredMixin, TitleMixin, TemplateView):
     title = "Страница курса"
 
     def get(self, request, *args, **kwargs):
-        context = super(CourseTemplateView, self).get_context_data(*args, **kwargs)
+        context = self.get_context_data(**kwargs)
+        course_id = kwargs["course_id"]
 
-        chapters = list(Chapter.objects.filter(course_id=kwargs["pk"]).order_by("id"))
-        course = Course.objects.get(pk=kwargs["pk"])
+        # Получаем курс
+        course = Course.objects.get(id=course_id)
+        # Получаем главы к этому курсу
+        chapters = Chapter.objects.filter(course=course).order_by("id")
+
+        # Получаем подписку пользователя на курс
+        subscription = Subscription.objects.get(user=request.user, course=course)
 
         for chapter in chapters:
-            tests = Test.objects.filter(chapter=chapter)
+            test = Test.objects.filter(chapter=chapter).first()
 
-            # Получаем подписку пользователя (например, через связь с User)
-            subscription = Subscription.objects.filter(user=request.user, course=course).first()
+            # Подсчет общего количества заданий в главе
+            chapter.total_tasks = test.tasks.count() if test else 0
 
-            # Проверяем количество пройденных тестов для главы через Progress
-            if subscription:
-                chapter.completed_tests_count = ChapterProgress.objects.filter(
-                    subscription=subscription,
-                    test__in=tests
+            # Подсчет количества выполненных заданий
+            if subscription and test:
+                chapter.completed_tasks_count = ChapterProgress.objects.filter(
+                    subscription=subscription, chapter=chapter, is_completed=True
                 ).count()
+            else:
+                chapter.completed_tasks_count = 0
 
-            chapter.total_tests_count = tests.count()
+        # Определяем доступность глав
+        for i, chapter in enumerate(chapters):
+            if i == 0:
+                chapter.is_accessible = True  # Первая глава всегда доступна
+            else:
+                prev_chapter = chapters[i - 1]
+                prev_test = Test.objects.filter(chapter=prev_chapter).first()
 
-        # Первая глава всегда доступна
-        if chapters:
-            chapters[0].is_accessible = True
-
-        for i in range(1, len(chapters)):
-            prev_chapter = chapters[i - 1]
-            current_chapter = chapters[i]
-
-            prev_tests = Test.objects.filter(chapter=prev_chapter)
-            prev_completed_count = ChapterProgress.objects.filter(
-                subscription=subscription,
-                test__in=prev_tests
-            ).count()
-
-            # Текущая глава доступна, если предыдущая полностью пройдена
-            current_chapter.is_accessible = prev_completed_count == prev_tests.count()
+                if prev_test and subscription:
+                    prev_completed_count = ChapterProgress.objects.filter(
+                        subscription=subscription, chapter=prev_chapter, is_completed=True
+                    ).count()
+                    chapter.is_accessible = prev_completed_count > 0
+                else:
+                    chapter.is_accessible = False
 
         context['course'] = course
         context['chapters'] = chapters
@@ -89,10 +93,19 @@ class ChapterTemplateView(LoginRequiredMixin, TitleMixin, TemplateView):
 
     def get(self, request, *args, **kwargs):
         context = super(ChapterTemplateView, self).get_context_data(*args, **kwargs)
-        chapter = Chapter.objects.get(id=kwargs["pk"])
+        course_id = kwargs["course_id"]
+        chapter_id = kwargs["chapter_id"]
+        chapter = Chapter.objects.get(id=chapter_id)
+
+        subscription = Subscription.objects.get(user=request.user, course_id=course_id)
+
+        # Начинаем прогресс по главе (если его нет)
+        if not ChapterProgress.objects.filter(chapter=chapter, subscription=subscription).exists():
+            chapter_progress = ChapterProgress(chapter=chapter, subscription=subscription)
+            chapter_progress.save()
 
         try:
-            content = Content.objects.get(chapter_id=kwargs["pk"])
+            content = Content.objects.get(chapter_id=chapter_id)
             if content.text:
                 context['text'] = content.text
 
@@ -105,55 +118,121 @@ class ChapterTemplateView(LoginRequiredMixin, TitleMixin, TemplateView):
         except Content.DoesNotExist:
             pass
 
-        tests = Test.objects.filter(chapter_id=kwargs["pk"])
+        test = Test.objects.filter(chapter_id=chapter_id)
+        tasks = Task.objects.filter(tests__in=test)
 
+        context['course_id'] = kwargs["course_id"]
         context['chapter'] = chapter
-        context['tasks'] = tests
+        context['tasks'] = tasks
         return self.render_to_response(context)
 
 
-class TestTemplateView(LoginRequiredMixin, TitleMixin, TemplateView):
-    template_name = "courses/students/test.html"
-    title = "Тест"
-    form_class = AnswerForm
+class TaskTemplateView(LoginRequiredMixin, TitleMixin, TemplateView):
+    template_name = "courses/students/task.html"
+    title = "Задание"
+    form_class = TaskAnswerForm
+
 
     def get(self, request, *args, **kwargs):
-        context = super(TestTemplateView, self).get_context_data(*args, **kwargs)
+        context = super().get_context_data(*args, **kwargs)
+        course_id, chapter_id, task_id = kwargs["course_id"], kwargs["chapter_id"], kwargs["task_id"]
         user = request.user
 
-        test = Test.objects.get(id=kwargs["pk"])
-        tests = Test.objects.filter(chapter_id=test.chapter_id)
+        # Получение прогресса по главе
+        chapter_progress = ChapterProgress.objects.filter(
+            subscription__user=user, subscription__course=course_id, chapter=chapter_id
+        ).first()
 
-        context['tasks'] = tests
-        context['test'] = test
+        # Получение прогресса по выполненным заданиям
+        task_progress = TaskProgress.objects.filter(chapter_progress=chapter_progress)
 
-        if test.id in user.completed_tests:
-            context["form"] = self.form_class(initial={"answer": test.correct_answer})
-            context["form"].fields["answer"].widget.attrs["readonly"] = True
-            context["completed"] = True
+        # Получение текущего задания
+        current_task = Task.objects.get(id=task_id)
+
+        tasks_in_chapter = Task.objects.filter(tests__chapter_id=chapter_id)
+        for task in tasks_in_chapter:
+            task.is_completed = task_progress.filter(test_task__task=task).exists()
+
+
+        # Получение вариантов ответа
+        answers = Answer.objects.filter(task=current_task)
+        correct_answers = answers.filter(is_correct=True)
+
+        # Проверка, выполнено ли задание
+        is_task_completed = task_progress.filter(test_task__task=current_task).exists()
+        if is_task_completed:
+
+            # Если задание выполнено, заполняем форму ответами
+            if current_task.is_multiple_choice:
+                selected_answers = [str(answer.id) for answer in correct_answers]
+                context["form"] = TaskAnswerForm(task=current_task, answers=answers,
+                                                 initial={"answers": selected_answers})
+
+
+            elif current_task.is_compiler:
+                context["form"] = None
+
+            else:
+                context["form"] = TaskAnswerForm(task=current_task,
+                                                 answers=answers,
+                                                 initial={"answers": correct_answers.first().text})
+
+            # Делаем поля формы недоступными для редактирования
+            for field in context["form"].fields.values():
+                field.widget.attrs["readonly"] = True
+                field.widget.attrs["disabled"] = True
+
         else:
-            context["form"] = self.form_class()
+            # Если задание не выполнено, создаем пустую форму
+            context["form"] = TaskAnswerForm(task=current_task, answers=answers)
+
+        context.update({
+            "current_task": current_task,
+            "is_task_completed": is_task_completed,
+            "tasks_in_chapter": tasks_in_chapter,
+            "answers": answers,
+            "course_id": course_id,
+            "chapter_id": chapter_id,
+            "task_id": task_id,
+        })
 
         return self.render_to_response(context)
 
-    def post(self, request, **kwargs):
-        form = AnswerForm(request.POST)
-        if form.is_valid():
-            test = Test.objects.get(id=kwargs["pk"])
-            user = request.user
 
-            user_answer = form.cleaned_data["answer"].lower()
-            correct_answer = test.correct_answer.lower()
+    def post(self, request, **kwargs):
+        task = Task.objects.get(id=kwargs["task_id"])
+        answers = Answer.objects.filter(task=task)
+        form = self.form_class(task, answers, data=request.POST)
+
+        if form.is_valid():
+            answers = Answer.objects.filter(task=task, is_correct=True)
+            form_answers = form.cleaned_data["answers"]
+
+            user_answer = form_answers if type(form_answers) == list else [form_answers]
+            correct_answer = [str(a.id) for a in answers] if task.is_multiple_choice else [a.text for a in answers]
 
             if user_answer == correct_answer:
+
+                # Получаем прогресс главы
+                chapter_progress, _ = ChapterProgress.objects.get_or_create(
+                    subscription__user=request.user,
+                    subscription__course_id=kwargs["course_id"],
+                    chapter_id=kwargs["chapter_id"]
+                )
+
+                # Добавляем выполненное задание в TestProgress
+                task_progress = TaskProgress(
+                    chapter_progress=chapter_progress,
+                    test_task=TestTask.objects.get(task=task,
+                                                   test=Test.objects.get(chapter_id=kwargs["chapter_id"])))
+
+                task_progress.save()
                 messages.success(request, "Правильный ответ!")
-                user.completed_tests.append(test.id)
-                user.save(update_fields=["completed_tests"])
 
             else:
                 messages.error(request, 'Неправильный ответ')
 
-            return redirect("courses:test", pk=test.id)
+            return redirect("courses:task", kwargs["course_id"], kwargs["chapter_id"], kwargs["task_id"])
 
 
 #                              Курсы
@@ -307,12 +386,12 @@ class ChapterUpdateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, Tem
             if 'video-clear' in request.POST:
                 content.video = None
             if video:
-                content.video = content_form.cleaned_data.get('video')
+                content.video = video
 
             if 'files-clear' in request.POST:
                 content.files = None
             if files:
-                content.files = video
+                content.files = files
 
             content.chapter = chapter
             content.save()
@@ -367,6 +446,13 @@ class TaskCreateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, Create
 
         if answer_formset.is_valid():
             answers = answer_formset.save(commit=False)
+
+            if len(answers) == 1:
+                self.object.is_text_input = True
+                self.object.save()
+            else:
+                self.object.is_multiple_choice = True
+                self.object.save()
 
             # Проходим по всем ответам и сохраняем их
             for answer in answers:

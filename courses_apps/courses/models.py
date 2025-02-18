@@ -58,6 +58,10 @@ class Test(models.Model):
 
 class Task(models.Model):
     question = models.TextField(null=False)
+    is_text_input = models.BooleanField(default=False)
+    is_multiple_choice = models.BooleanField(default=False)
+    is_compiler = models.BooleanField(default=False)
+
 
     def __str__(self):
         return self.question

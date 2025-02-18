@@ -8,18 +8,40 @@ from courses_apps.courses.models import Course, Category, Chapter, Content, Task
 from courses_apps.users.models import User, Group
 
 
-class AnswerForm(forms.Form):
-    class Meta:
-        fields = ('answer',)
+class TaskAnswerForm(forms.Form):
+    def __init__(self, task, answers, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
-    answer = forms.CharField(
-        label='Ответ',
-        widget=forms.TextInput(attrs={
-            'class': "form-control",
-            'placeholder': "Введите ответ",
-            'required': 'Нужно ввести ответ'
-        }))
+        if task.is_text_input:
+            # Если нужно текстовое поле ввода ответа
+            self.fields["answers"] = forms.CharField(
+                label="Ответ",
+                widget=forms.TextInput(attrs={
+                    "class": "form-control",
+                    "placeholder": "Введите ответ",
+                    "required": "required"
+                })
+            )
 
+        elif task.is_multiple_choice:
+
+            choices = [(answer.id, answer.text) for answer in answers]
+            correct_count = answers.filter(is_correct=True).count()
+
+            if correct_count == 1:
+                # Радиокнопки, если один правильный ответ
+                self.fields["answers"] = forms.ChoiceField(
+                    choices=choices,
+                    widget=forms.RadioSelect,
+                    label="Выберите один ответ",
+                )
+            else:
+                # Чекбоксы, если несколько правильных ответов
+                self.fields["answers"] = forms.MultipleChoiceField(
+                    choices=choices,
+                    widget=forms.CheckboxSelectMultiple,
+                    label="Выберите один или несколько ответов",
+                )
 
 
 
@@ -32,7 +54,6 @@ class CreateCourseForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['category'].queryset = Category.objects.all()
 
-
     title = forms.CharField(
         label='Курс',
         widget=forms.TextInput(attrs={
@@ -40,7 +61,6 @@ class CreateCourseForm(forms.ModelForm):
             'placeholder': "Введите название курса",
             'required': 'Введите название курса'
         }))
-
 
     description = forms.CharField(
         label='Описание',
@@ -51,19 +71,16 @@ class CreateCourseForm(forms.ModelForm):
             'required': 'Нужно написать описание курса'
         }))
 
-
     status = forms.ChoiceField(
         choices=Course.STATUS_CHOICES,
         label='Статус',
         widget=forms.Select(attrs={'class': "form-select"})
     )
 
-
     category = forms.ModelChoiceField(
         queryset=None,
         label='Категория',
         widget=forms.Select(attrs={'class': "form-select"}))
-
 
 
 class ChapterForm(forms.ModelForm):
@@ -90,7 +107,6 @@ ChapterFormSet = inlineformset_factory(
 )
 
 
-
 class CreateCategoryForm(forms.ModelForm):
     class Meta:
         model = Category
@@ -103,7 +119,6 @@ class CreateCategoryForm(forms.ModelForm):
             'placeholder': "Введите новую категорию",
             'required': 'Нужно ввести новую категорию'
         }))
-
 
 
 class CreateContentForm(forms.ModelForm):
@@ -128,8 +143,6 @@ class CreateContentForm(forms.ModelForm):
             'class': 'form-control',
             'style': 'max-width: 500px;',
             'accept': 'video/mp4',
-
-
 
         }),
 
@@ -200,8 +213,6 @@ AnswerFormUpdateSet = inlineformset_factory(
 )
 
 
-
-
 class CreateTestForm(forms.ModelForm):
     class Meta:
         model = Test
@@ -211,7 +222,6 @@ class CreateTestForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["tasks"].queryset = Task.objects.all()
         self.fields["chapter"].queryset = Chapter.objects.all()
-
 
     chapter = forms.ModelChoiceField(
         queryset=Chapter.objects.none(),
@@ -337,20 +347,19 @@ class GroupSearchForm(forms.Form):
         self.fields['year'].choices = [(year, year) for year in years]
 
 
-
 class SubscriptionForm(forms.Form):
     course = forms.ModelChoiceField(
         label="Курс",
         queryset=None,
         required=True,
         widget=forms.Select(attrs={'class': 'form-control', 'placeholder': 'Выберите курс'}
-    ))
+                            ))
     group = forms.ModelChoiceField(
         label="Группа",
         queryset=None,
         required=True,
         widget=forms.Select(attrs={'class': 'form-control', 'placeholder': 'Выберите группу'}
-    ))
+                            ))
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -359,12 +368,3 @@ class SubscriptionForm(forms.Form):
 
         self.fields['course'].queryset = courses
         self.fields['group'].queryset = groups
-
-
-
-
-
-
-
-
-

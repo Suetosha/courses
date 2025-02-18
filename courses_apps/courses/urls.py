@@ -9,9 +9,9 @@ urlpatterns = [
     path("", HomeTemplateView.as_view(), name='home'),
 
     # Для студентов
-    path("course/<int:pk>", CourseTemplateView.as_view(), name='course'),
-    path("chapter/<int:pk>", ChapterTemplateView.as_view(), name='chapter'),
-    path("tasks/<int:pk>", TestTemplateView.as_view(), name='test'),
+    path("course/<int:course_id>", CourseTemplateView.as_view(), name='course'),
+    path("course/<int:course_id>/chapter/<int:chapter_id>", ChapterTemplateView.as_view(), name='chapter'),
+    path("course/<int:course_id>/chapter/<chapter_id>/task/<int:task_id>", TaskTemplateView.as_view(), name='task'),
 
     #               Для преподавателей
 
