@@ -20,6 +20,12 @@ class UserLoginView(TitleMixin, LoginView):
     form_class = UserLoginForm
     title = 'Авторизация'
 
+    def get_success_url(self):
+        user = self.request.user
+        if user.is_superuser or user.role == "teacher":
+            return reverse_lazy('courses:courses_list')
+        return reverse_lazy('courses:home')
+
 
 # Профиль пользователя с возможностью поменять пароль и посмотреть прогресс по курсам
 class UserProfileView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, UpdateView):
