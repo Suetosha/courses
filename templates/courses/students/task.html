@@ -32,7 +32,7 @@
     <div class="row d-flex flex-wrap justify-content-start">
         {% for index, task in tasks_in_chapter|enumerate %}
             <div class="col-auto p-1">
-                <a href="{% url 'courses:task' course_id chapter_id task.id %}" 
+                <a href="{% url 'courses:task' course_id chapter_id task.id %}"
                     class="card
                     
                     {% if task.is_completed %} 
@@ -55,7 +55,7 @@
 </div>    
     
 <style>
-    /* Стиль для формы карточки */
+
     .card {
         width: 50px;
         height: 50px;

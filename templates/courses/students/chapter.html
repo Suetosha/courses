@@ -2,53 +2,64 @@
 {% load enumerate %}
 
 {% block content %}
-<div class="container mt-5" style="max-width: 1000px;">
-    <div class="card shadow-lg p-4">
-        <div class="card-body">
-            {% if text %}
-                <div class="row">
-                    <div class="card text-card shadow-sm p-3">
-                        <div class="card-body">
-                            <pre class="pre">{{ text }}</pre>
+    
+{% if chapter_content %}    
+    <div class="container mt-5" style="max-width: 1000px;">
+        <div class="card shadow-lg p-4">
+            <div class="card-body">
+            
+                {% if chapter_content.text %}
+                    <div class="row">
+                        <div class="card text-card shadow-sm p-3">
+                            <div class="card-body">
+                                <pre class="pre">{{ chapter_content.text }}</pre>
+                            </div>
                         </div>
                     </div>
-                </div>
-            {% endif %}
-
-            {% if video %}
-                <div class="row mt-3">
-                    <div class="card shadow-sm p-3">
-                        <div class="card-body">
-                            <video class="w-100" controls>
-                                <source src="{{ video.url }}" type="video/mp4">
-                            </video>
+                {% endif %}
+    
+                {% if chapter_content.video %}
+                    <div class="row mt-3">
+                        <div class="card shadow-sm p-3">
+                            <div class="card-body">
+                                <video class="w-100" controls>
+                                    <source src="{{ chapter_content.video.url }}" type="video/mp4">
+                                </video>
+                            </div>
                         </div>
                     </div>
-                </div>
-            {% endif %}
-
-            {% if file %}
-                <div class="row mt-4">
-                    <div class="card shadow-sm p-3">
-                        <div class="card-body">
-                            <h4>Документ для изучения:</h4>
-                            <a href="{{ file.url }}" class="btn btn-primary mt-2" target="_blank">Скачать PDF</a>
+                {% endif %}
+    
+                {% if chapter_content.files %}
+                    <div class="row mt-4">
+                        <div class="card shadow-sm p-3">
+                            <div class="card-body">
+                                <h4>Документ для изучения:</h4>
+                                <a href="{{ chapter_content.files.url }}" class="btn btn-primary mt-2" target="_blank">Скачать PDF</a>
+                            </div>
                         </div>
                     </div>
-                </div>
-            {% endif %}
+                {% endif %}
+            
+            </div>
         </div>
     </div>
-</div>
-
+{% endif %}
+    
 <h3 class="d-flex flex-wrap justify-content-center mt-3">Тесты:</h3>
-
 <div class="container mt-3 mb-xl-5" style="max-width: 800px;">
     <div class="row d-flex flex-wrap justify-content-start">
         {% for index, task in tasks|enumerate %}
         <div class="col-auto p-1">
-            <a href="{% url 'courses:task' course_id chapter.id task.id %}"
-               class="card test-card {% if task.completed %}completed-test-card{% else %}not-completed-test-card{% endif %}">
+            <a href="{% url 'courses:task' chapter.course_id chapter.id task.id %}"
+               class="card test-card 
+               
+                {% if task.is_completed %}
+                    completed-test-card
+                {% else %}
+                    not-completed-test-card
+                {% endif %}">
+            
                 <div class="card-body p-2 text-center">
                     <h6 class="card-title mb-0">{{ index }}</h6>
                 </div>
@@ -61,7 +72,7 @@
 </div>
 
 <div class="d-flex justify-content-center mt-5">
-    <a href="{% url 'courses:course' course_id %}" class="btn btn-secondary">← Вернуться обратно</a>
+    <a href="{% url 'courses:course' chapter.course_id %}" class="btn btn-secondary">← Вернуться обратно</a>
 </div> 
 
 <style>
@@ -75,13 +86,12 @@
 
     /* Стиль для карточки с текстом */
     .text-card {
-        display: inline-block; /* Автоматически подстраивается под содержимое */
+        display: inline-block;
         width: 100%;
         padding: 15px;
         font-size: 16px;
         border-radius: 10px;
         background-color: #f8f9fa;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     }
 
     /* Стиль для формы карточки */
@@ -96,15 +106,15 @@
 
     /* Стиль для карточке, где тест был пройден */
     .completed-test-card {
-        background-color: #28a745;
+        background-color: #c3e6cb ;
         border: 2px solid transparent;
-        color: white;
+        color:  #212529;
     }
 
     /* Эффект при наведении на карточку с пройденным тестом */
     .completed-test-card:hover {
         border-color: #81c784;
-        color: white;
+        color: #212529;
     }
 
     /* Стиль для карточки с непройденным тестом */

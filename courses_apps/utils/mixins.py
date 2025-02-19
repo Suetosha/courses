@@ -2,8 +2,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import redirect
 from django.contrib import messages
 
-from courses_apps.courses.models import Course, Subscription
-from courses_apps.users.models import Group
+from courses_apps.courses.models import Course
+from courses_apps.users.models import Subscription
 
 
 class TitleMixin:

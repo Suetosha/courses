@@ -2,56 +2,40 @@
 
 {% block content %}
     
-<h3 class="d-flex justify-content-center mt-3">{{ course.title }}</h3>
+    <div class="container mt-5">
+        <h2 class="text-center fw-bold">{{ course.title }}</h2>
     
-<pre class="d-flex flex-wrap justify-content-center mt-5">
-    {{ course.description }}
-</pre>    
+        <p class="lead text-muted text-center mt-3">{{ course.description }}</p>
     
-<h3 class="d-flex justify-content-center mt-5">Главы курса:</h3>
+        <h3 class="text-center mt-5">Главы курса:</h3>
     
-<div class="d-flex flex-wrap justify-content-center gap-3 mt-5">
-    {% for chapter in chapters %}
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">{{ chapter.title }}</h5>
-                <p>
-                    Выполнено тестов:
-                    {{ chapter.completed_tasks_count }} / {{ chapter.total_tasks }}
-                </p>
-
-                {% if chapter.is_accessible %}
-                    <a href="{% url 'courses:chapter' course.id chapter.id %}" class="card-link">Перейти</a>
-                {% endif %}
-            </div>
+        <div class="d-flex flex-wrap justify-content-center gap-3 mt-4">
+            {% for chapter in chapters %}
+                <div class="card shadow-lg border-0 p-3" 
+                    style="width: 18rem; border-radius: 15px; 
+                           {% if chapter.is_completed %} background-color: #c3e6cb; color: #212529; {% endif %}">
+                    
+                    <div class="card-body">
+                        <h5 class="card-title fw-bold">{{ chapter.title }}</h5>
+    
+                        {% if chapter.total_tasks %}
+                            <p class="mb-2">
+                                <strong>Выполнено тестов:</strong> 
+                                {{ chapter.completed_tasks }} / {{ chapter.total_tasks }}
+                            </p>
+                        {% endif %}  
+    
+                        {% if chapter.is_accessible %}
+                            <a href="{% url 'courses:chapter' course.id chapter.id %}" class="btn btn-light w-100">
+                                Перейти
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            {% empty %}
+                <p class="mt-3 text-muted text-center">Главы курса не найдены.</p>
+            {% endfor %}
         </div>
-    {% empty %}
-        <p class="mt-3">Главы курса не найдены.</p>
-    {% endfor %}
-</div>
+    </div>
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-<style>
-    .completed-chapter {
-        background-color: #28a745;
-        color: white;
-        }
-    pre {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        font-size: 1.2rem;
-        font-weight: 500;
-        color: #444; 
-        line-height: 1.5;
-        white-space: pre-wrap;
-    }
-</style>    
-    
 {% endblock %}

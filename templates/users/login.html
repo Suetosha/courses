@@ -4,15 +4,14 @@
 {% block content %}
 
 <div class="container d-flex justify-content-center align-items-center vh-100">
-    <div class="text-center col-md-4">
+    <div class="text-center col-md-5 mb-5">
         <form method="post" class="p-4 border rounded shadow bg-white">
             {% csrf_token %}
             <h4 class="mb-3">Авторизация</h4>
             {{ form.as_p }}
             <input class="btn btn-primary w-100" type="submit" value="Продолжить">
         </form>
-
-        <a class="btn btn-secondary w-100 mt-3" href="{% url 'users:registration' %}">Зарегистрироваться</a>
+        
     </div>
 </div>
 

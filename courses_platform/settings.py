@@ -23,7 +23,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'courses_apps.users',
-    'courses_apps.courses'
+    'courses_apps.courses',
+    'courses_apps.tests'
 ]
 
 MIDDLEWARE = [

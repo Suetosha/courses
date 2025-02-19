@@ -31,27 +31,31 @@
           </ul>
         {% endif %}
         
-        {% if request.user.role == "teacher" %}
+        {% if request.user.role == "teacher" or request.user.is_superuser %}
             
               <ul class="nav me-auto">
                   <li class="nav-item"><a href="{% url 'courses:courses_list' %}" class="nav-link link-dark px-2 active">Курсы</a></li>
               </ul>
             
               <ul class="nav me-auto">
-                  <li class="nav-item"><a href="{% url 'courses:tasks_list' %}" class="nav-link link-dark px-2 active">Задания</a></li>
+                  <li class="nav-item"><a href="{% url 'tests:tasks_list' %}" class="nav-link link-dark px-2 active">Задания</a></li>
               </ul>
             
               <ul class="nav me-auto">
-                  <li class="nav-item"><a href="{% url 'courses:tests_list' %}" class="nav-link link-dark px-2 active">Тесты</a></li>
+                  <li class="nav-item"><a href="{% url 'tests:tests_list' %}" class="nav-link link-dark px-2 active">Тесты</a></li>
               </ul>
             
               <ul class="nav me-auto">
-                  <li class="nav-item"><a href="{% url 'courses:students_list' %}" class="nav-link link-dark px-2 active">Студенты</a></li>
-              </ul>     
+                  <li class="nav-item"><a href="{% url 'users:subscriptions_list' %}" class="nav-link link-dark px-2 active">Подписки на курс</a></li>
+              </ul>
             
               <ul class="nav me-auto">
-                  <li class="nav-item"><a href="{% url 'courses:subscriptions_list' %}" class="nav-link link-dark px-2 active">Подписки на курс</a></li>
-              </ul>
+                  <li class="nav-item"><a href="{% url 'users:students_list' %}" class="nav-link link-dark px-2 active">Студенты</a></li>
+              </ul>  
+            
+              <ul class="nav me-auto">
+                <li class="nav-item"><a href="{% url 'users:teachers_list' %}" class="nav-link link-dark px-2 active">Преподаватели</a></li>
+              </ul>  
             
         {% endif %}  
         
@@ -74,7 +78,6 @@
         
             <ul class="nav">
                 <li class="nav-item"><a href="{% url 'users:login' %}" class="nav-link link-dark px-2 active">Вход</a></li>
-                <li class="nav-item"><a href="{% url 'users:registration' %}" class="nav-link link-dark px-2 active">Регистрация</a></li>
             </ul>
               
         {% endif %}

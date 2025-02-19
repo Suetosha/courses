@@ -30,7 +30,7 @@
         <div class="card-body">
             <h5 class="card-title">{{ course.title }}</h5>
             <h6 class="card-subtitle mb-2 text-muted">{{ course.category.title }}</h6>
-            <a href="{% url 'courses:course' course.id %}" class="card-link">Начать курс</a>
+            <a href="{% url 'courses:course' course.id %}" class="card-link">Перейти</a>
         </div>
     </div>
     {% empty %}

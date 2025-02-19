@@ -1,16 +1,16 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
-from django.db.models import Prefetch
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
-from django.views import View
+from django.db.models import Exists, OuterRef
 
 from django.views.generic import TemplateView, ListView, FormView, UpdateView, DeleteView, CreateView
 
 from courses_apps.courses.forms import *
 from courses_apps.courses.models import *
-from courses_apps.utils.generate_students_excel import generate_excel
+from courses_apps.tests.models import *
+from courses_apps.users.models import Subscription, ChapterProgress, TaskProgress
 from courses_apps.utils.mixins import TitleMixin
 
 
@@ -42,29 +42,27 @@ class CourseTemplateView(LoginRequiredMixin, TitleMixin, TemplateView):
 
     def get(self, request, *args, **kwargs):
         context = self.get_context_data(**kwargs)
-        course_id = kwargs["course_id"]
 
-        # Получаем курс
-        course = Course.objects.get(id=course_id)
-        # Получаем главы к этому курсу
+        course = Course.objects.get(id=kwargs["course_id"])
         chapters = Chapter.objects.filter(course=course).order_by("id")
-
-        # Получаем подписку пользователя на курс
         subscription = Subscription.objects.get(user=request.user, course=course)
 
         for chapter in chapters:
             test = Test.objects.filter(chapter=chapter).first()
+            chapter_progress = ChapterProgress.objects.filter(chapter=chapter, subscription=subscription).first()
 
-            # Подсчет общего количества заданий в главе
-            chapter.total_tasks = test.tasks.count() if test else 0
+            if chapter_progress:
+                # Подсчет общего количества заданий в главе
+                chapter.total_tasks = test.tasks.count() if test else 0
 
-            # Подсчет количества выполненных заданий
-            if subscription and test:
-                chapter.completed_tasks_count = ChapterProgress.objects.filter(
-                    subscription=subscription, chapter=chapter, is_completed=True
+                # Получение выполненных тестов по главе
+                chapter.completed_tasks = TaskProgress.objects.filter(
+                    chapter_progress=chapter_progress,
                 ).count()
-            else:
-                chapter.completed_tasks_count = 0
+
+                chapter.is_completed = chapter_progress.is_completed
+
+
 
         # Определяем доступность глав
         for i, chapter in enumerate(chapters):
@@ -76,11 +74,15 @@ class CourseTemplateView(LoginRequiredMixin, TitleMixin, TemplateView):
 
                 if prev_test and subscription:
                     prev_completed_count = ChapterProgress.objects.filter(
-                        subscription=subscription, chapter=prev_chapter, is_completed=True
+                        subscription=subscription,
+                        chapter=prev_chapter,
+                        is_completed=True
                     ).count()
+
                     chapter.is_accessible = prev_completed_count > 0
                 else:
                     chapter.is_accessible = False
+
 
         context['course'] = course
         context['chapters'] = chapters
@@ -95,35 +97,33 @@ class ChapterTemplateView(LoginRequiredMixin, TitleMixin, TemplateView):
         context = super(ChapterTemplateView, self).get_context_data(*args, **kwargs)
         course_id = kwargs["course_id"]
         chapter_id = kwargs["chapter_id"]
+
         chapter = Chapter.objects.get(id=chapter_id)
+        subscription = Subscription.objects.get(user=request.user, course=course_id)
 
-        subscription = Subscription.objects.get(user=request.user, course_id=course_id)
+        # Создаем или получаем прогресс по главе
+        chapter_progress, _ = ChapterProgress.objects.get_or_create(
+            chapter=chapter, subscription=subscription)
 
-        # Начинаем прогресс по главе (если его нет)
-        if not ChapterProgress.objects.filter(chapter=chapter, subscription=subscription).exists():
-            chapter_progress = ChapterProgress(chapter=chapter, subscription=subscription)
-            chapter_progress.save()
 
-        try:
-            content = Content.objects.get(chapter_id=chapter_id)
-            if content.text:
-                context['text'] = content.text
+        # Добавляем к каждому заданию флаг is_completed=True, если он есть в TaskProgress
+        tasks_in_chapter = Task.objects.filter(
+            tests__chapter_id=chapter_id
+        ).annotate(
+            is_completed=Exists(
+                TaskProgress.objects.filter(
+                    chapter_progress=chapter_progress,
+                    # OuterRef("id")- ссылка на внешний Task.id
+                    test_task__task=OuterRef("id")
+                )
+            )
+        )
 
-            if content.video:
-                context['video'] = content.video
+        chapter_content = Content.objects.filter(chapter=chapter).first()
 
-            if content.files:
-                context['file'] = content.files
-
-        except Content.DoesNotExist:
-            pass
-
-        test = Test.objects.filter(chapter_id=chapter_id)
-        tasks = Task.objects.filter(tests__in=test)
-
-        context['course_id'] = kwargs["course_id"]
         context['chapter'] = chapter
-        context['tasks'] = tasks
+        context['tasks'] = tasks_in_chapter
+        context['chapter_content'] = chapter_content
         return self.render_to_response(context)
 
 
@@ -138,29 +138,26 @@ class TaskTemplateView(LoginRequiredMixin, TitleMixin, TemplateView):
         course_id, chapter_id, task_id = kwargs["course_id"], kwargs["chapter_id"], kwargs["task_id"]
         user = request.user
 
-        # Получение прогресса по главе
-        chapter_progress = ChapterProgress.objects.filter(
-            subscription__user=user, subscription__course=course_id, chapter=chapter_id
-        ).first()
-
         # Получение прогресса по выполненным заданиям
-        task_progress = TaskProgress.objects.filter(chapter_progress=chapter_progress)
+        task_progress = TaskProgress.objects.filter(
+            chapter_progress__subscription__user=user,
+            chapter_progress__subscription__course=course_id,
+            chapter_progress__chapter=chapter_id
+        )
+
+        # Добавляем флаг is_completed = True, если айди задания есть в task_progress
+        tasks_in_chapter = (Task.objects.filter(tests__chapter_id=chapter_id)
+                            .annotate(is_completed=Exists(task_progress.filter(test_task__task=OuterRef("id")))))
+
 
         # Получение текущего задания
-        current_task = Task.objects.get(id=task_id)
+        current_task = tasks_in_chapter.get(id=task_id)
 
-        tasks_in_chapter = Task.objects.filter(tests__chapter_id=chapter_id)
-        for task in tasks_in_chapter:
-            task.is_completed = task_progress.filter(test_task__task=task).exists()
-
-
-        # Получение вариантов ответа
+        # Получение всех и правильных вариантов ответа
         answers = Answer.objects.filter(task=current_task)
         correct_answers = answers.filter(is_correct=True)
 
-        # Проверка, выполнено ли задание
-        is_task_completed = task_progress.filter(test_task__task=current_task).exists()
-        if is_task_completed:
+        if current_task.is_completed:
 
             # Если задание выполнено, заполняем форму ответами
             if current_task.is_multiple_choice:
@@ -188,7 +185,7 @@ class TaskTemplateView(LoginRequiredMixin, TitleMixin, TemplateView):
 
         context.update({
             "current_task": current_task,
-            "is_task_completed": is_task_completed,
+            "is_task_completed": current_task.is_completed,
             "tasks_in_chapter": tasks_in_chapter,
             "answers": answers,
             "course_id": course_id,
@@ -213,20 +210,35 @@ class TaskTemplateView(LoginRequiredMixin, TitleMixin, TemplateView):
 
             if user_answer == correct_answer:
 
+                # Получаем главу
+                chapter = Chapter.objects.get(id=kwargs["chapter_id"])
+
                 # Получаем прогресс главы
                 chapter_progress, _ = ChapterProgress.objects.get_or_create(
                     subscription__user=request.user,
                     subscription__course_id=kwargs["course_id"],
-                    chapter_id=kwargs["chapter_id"]
+                    chapter=chapter
                 )
 
                 # Добавляем выполненное задание в TestProgress
                 task_progress = TaskProgress(
                     chapter_progress=chapter_progress,
                     test_task=TestTask.objects.get(task=task,
-                                                   test=Test.objects.get(chapter_id=kwargs["chapter_id"])))
+                                                   test=Test.objects.get(chapter=chapter)))
 
                 task_progress.save()
+
+                # Подсчет общего количества заданий в главе
+                total_tasks = Test.objects.get(chapter=chapter).tasks.count()
+
+                # Получение выполненных тестов по главе
+                completed_tasks = chapter_progress.taskprogress_set.count()
+
+                # Если все задания по данной главе пройдены, то она считается пройденной
+                if total_tasks == completed_tasks:
+                    chapter_progress.is_completed = True
+                    chapter_progress.save()
+
                 messages.success(request, "Правильный ответ!")
 
             else:
@@ -239,7 +251,7 @@ class TaskTemplateView(LoginRequiredMixin, TitleMixin, TemplateView):
 
 # Просмотр курсов
 class CoursesListView(LoginRequiredMixin, TitleMixin, ListView):
-    template_name = "courses/teachers/courses/courses_list.html"
+    template_name = "courses/teachers/courses_list.html"
     title = "Просмотр курсов"
     model = Course
     context_object_name = 'courses'
@@ -253,7 +265,7 @@ class CoursesListView(LoginRequiredMixin, TitleMixin, ListView):
 # Создание курсов
 class CourseCreateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, FormView):
     title = "Создание курса"
-    template_name = "courses/teachers/courses/create_course.html"
+    template_name = "courses/teachers/create_course.html"
     form_class = CreateCourseForm
     model = Course
     success_url = reverse_lazy("courses:courses_list")
@@ -289,7 +301,7 @@ class CourseCreateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, Form
 # Редактирование курса
 class CourseUpdateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, UpdateView):
     title = "Редактирование курса"
-    template_name = "courses/teachers/courses/update_course.html"
+    template_name = "courses/teachers/update_course.html"
     model = Course
     form_class = CreateCourseForm
     success_url = reverse_lazy("courses:courses_list")
@@ -312,7 +324,7 @@ class CourseUpdateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, Upda
 # Удаление курса
 class CourseDeleteView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, DeleteView):
     title = "Удаление курса"
-    template_name = "courses/teachers/courses/course_confirm_delete.html"
+    template_name = "courses/teachers/course_confirm_delete.html"
     model = Course
     success_url = reverse_lazy('courses:courses_list')
     success_message = "Курс успешно удален"
@@ -323,7 +335,7 @@ class CourseDeleteView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, Dele
 # Создание категорий
 class CategoryCreateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, CreateView):
     title = "Создание категории"
-    template_name = "courses/teachers/courses/create_category.html"
+    template_name = "courses/teachers/create_category.html"
     form_class = CreateCategoryForm
     model = Category
     success_url = reverse_lazy('courses:courses_list')
@@ -344,7 +356,7 @@ class CategoryDeleteView(LoginRequiredMixin, DeleteView):
 # Создание глав
 class ChapterUpdateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, TemplateView):
     title = 'Редактирование главы'
-    template_name = 'courses/teachers/courses/update_chapter.html'
+    template_name = 'courses/teachers/update_chapter.html'
 
 
     def get_context_data(self, **kwargs):
@@ -406,287 +418,3 @@ class ChapterUpdateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, Tem
 
         return self.render_to_response(context)
 
-
-#                                   Задания
-
-# Просмотр заданий
-class TaskListView(LoginRequiredMixin, TitleMixin, ListView):
-    title = "Просмотр заданий"
-    template_name = "courses/teachers/tasks/tasks_list.html"
-    model = Task
-    context_object_name = 'tasks'
-
-    def get_queryset(self):
-        return Task.objects.prefetch_related("answer_set")
-
-
-# Создание задания
-class TaskCreateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, CreateView):
-    title = 'Создание задания'
-    template_name = "courses/teachers/tasks/create_task.html"
-    model = Task
-    form_class = CreateTaskForm
-    success_url = reverse_lazy("courses:tasks_list")
-    success_message = 'Задание успешно создано'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        if self.request.POST:
-            context['answer_formset'] = AnswerFormUpdateSet(self.request.POST)
-        else:
-            context['answer_formset'] = AnswerFormCreateSet()
-        return context
-
-    def form_valid(self, form):
-        context = self.get_context_data()
-        answer_formset = context['answer_formset']
-
-        # Сохраняем вопрос
-        self.object = form.save()
-
-        if answer_formset.is_valid():
-            answers = answer_formset.save(commit=False)
-
-            if len(answers) == 1:
-                self.object.is_text_input = True
-                self.object.save()
-            else:
-                self.object.is_multiple_choice = True
-                self.object.save()
-
-            # Проходим по всем ответам и сохраняем их
-            for answer in answers:
-                answer.task = self.object  # Привязываем ответ к вопросу
-                answer.save()
-
-        return super().form_valid(form)
-
-
-# Редактирование задания
-class TaskUpdateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, UpdateView):
-    title = 'Редактировать задание'
-    model = Task
-    template_name = "courses/teachers/tasks/update_task.html"
-    form_class = CreateTaskForm
-    success_url = reverse_lazy("courses:tasks_list")
-    success_message = "Данные обновлены"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        if self.request.method == 'GET':
-            answer_formset = AnswerFormCreateSet(instance=self.object)
-        else:
-            answer_formset = AnswerFormUpdateSet(instance=self.object)
-
-        task_form = CreateTaskForm(instance=self.object)
-        context['answer_formset'] = answer_formset
-        context['form'] = task_form
-        return context
-
-    def post(self, request, *args, **kwargs):
-        self.object = self.get_object()  # Получаем задание
-        task_form = self.get_form()
-        answer_formset = AnswerFormUpdateSet(request.POST, instance=self.object)
-
-        if task_form.is_valid() and answer_formset.is_valid():
-            task_form.save()
-            answer_formset.save()
-            return self.form_valid(task_form)
-
-        context = self.get_context_data()
-        context['form'] = task_form
-        context['answer_formset'] = answer_formset
-        return self.render_to_response(context)
-
-
-# Удаление задания
-class TaskDeleteView(LoginRequiredMixin, DeleteView):
-    model = Task
-    success_url = reverse_lazy('courses:tasks_list')
-
-    def get(self, request, *args, **kwargs):
-        return self.delete(request, *args, **kwargs)
-
-
-
-#                                Тесты
-
-# Просмотр тестов
-class TestListView(LoginRequiredMixin,TitleMixin, ListView):
-    title = 'Просмотр тестов'
-    template_name = 'courses/teachers/tests/tests_list.html'
-    model = Chapter
-    context_object_name = 'courses'
-
-    def get_queryset(self):
-        # Предзагрузка задач в тестах
-        tasks_prefetch = Prefetch(
-            "tasks",
-            queryset=Task.objects.all(),
-            to_attr="prefetched_tasks"
-        )
-
-        # Предзагрузка тестов и их заданий
-        tests_prefetch = Prefetch(
-            "test",
-            queryset=Test.objects.prefetch_related(tasks_prefetch),
-            to_attr="prefetched_test"
-        )
-
-        # Предзагрузка глав и их тестов
-        chapters_prefetch = Prefetch(
-            "chapter_set",
-            queryset=Chapter.objects.prefetch_related(tests_prefetch),
-            to_attr="prefetched_chapters"
-        )
-
-        # Получаем основной queryset с предзагруженными главами, тестами и заданиями
-        queryset = Course.objects.prefetch_related(chapters_prefetch)
-
-        return queryset
-
-
-# Создание теста
-class TestCreateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, CreateView):
-    title = 'Создание теста'
-    template_name = 'courses/teachers/tests/create_test.html'
-    model = Test
-    form_class = CreateTestForm
-    success_url = reverse_lazy('courses:tests_list')
-    success_message = 'Тест успешно создан'
-
-
-    def form_valid(self, form):
-        test = form.save()
-
-        tasks = form.cleaned_data['tasks']
-        # Используем set() для установки связи с задачами
-        test.tasks.set(tasks)
-
-        return super().form_valid(form)
-
-
-# Удаление теста
-class TestDeleteView(LoginRequiredMixin, DeleteView):
-    model = Test
-    success_url = reverse_lazy('courses:tests_list')
-
-    def get(self, request, *args, **kwargs):
-        return self.delete(request, *args, **kwargs)
-
-
-#                                 Студенты
-
-# Просмотр студентов + функционал создания Excel
-class StudentListView(LoginRequiredMixin, TitleMixin, ListView):
-    title = 'Список студентов'
-    template_name = 'courses/teachers/students/students_list.html'
-    model = User
-    context_object_name = 'students'
-
-    def get_queryset(self):
-        queryset = User.objects.filter(role="student").prefetch_related("groups")
-        group_number = self.request.GET.get('group_number')
-        year = self.request.GET.get('year')
-
-        if group_number and year:
-            group = Group.objects.filter(number=group_number, year=year).first()
-            if group:
-                queryset = queryset.filter(groups=group)
-
-        return queryset
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        form = GroupSearchForm(self.request.GET or None)
-        context['form'] = form
-        return context
-
-
-    def post(self, request, *args, **kwargs):
-        form = GroupSearchForm(request.POST)
-        if form.is_valid():
-            group_number = form.cleaned_data['group_number']
-            year = form.cleaned_data['year']
-            return generate_excel(group_number, year)
-        return self.get(request, *args, **kwargs)
-
-
-
-# Создание студентов
-class StudentCreateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, CreateView):
-    title = 'Создание студента'
-    template_name = 'courses/teachers/students/create_student.html'
-    model = User
-    form_class = CreateStudentForm
-    success_url = reverse_lazy('courses:students_list')
-    success_message = 'Студент успешно создан'
-
-
-# Удаление студента
-class StudentDeleteView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, DeleteView):
-    title = 'Удалить студента'
-    template_name = "courses/teachers/students/student_confirm_delete.html"
-    model = User
-    success_url = reverse_lazy('courses:students_list')
-    success_message = 'Студент успешно удален'
-
-
-
-#                         Подписки
-# Просмотр подписок, их создание
-class SubscriptionListView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, ListView):
-    title = "Подписки на курс"
-    template_name = "courses/teachers/subscriptions/subscription_list.html"
-    model = Subscription
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['form'] = SubscriptionForm()
-
-        # Загружаем все подписки с пользователями и их группами
-        subscriptions = Subscription.objects.select_related('course', 'user').prefetch_related('user__groups')
-
-        # Создаём словарь {course: [список групп]}
-        course_groups = {}
-        for sub in subscriptions:
-            if sub.course not in course_groups:
-                course_groups[sub.course] = set()
-            course_groups[sub.course].update(sub.user.groups.all())
-
-        context['subscriptions'] = {course: list(groups) for course, groups in course_groups.items()}
-
-        return context
-
-    def post(self, request, *args, **kwargs):
-        form = SubscriptionForm(request.POST)
-        if form.is_valid():
-            # Создаем подписку
-            course = form.cleaned_data['course']
-            group = form.cleaned_data['group']
-
-            students_by_group = User.objects.filter(groups=group)
-
-            if students_by_group:
-                for student in students_by_group:
-                    if not Subscription.objects.filter(user=student, course=course).exists():
-                        Subscription.objects.create(user=student, course=course)
-                messages.success(request, 'Группа добавлена в курс')
-            else:
-                messages.error(request, 'В данной группе нет студентов')
-            return redirect('courses:subscriptions_list')
-
-
-
-class SubscriptionDeleteView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, View):
-    title = 'Удалить подписку группы на курс'
-    model = Subscription
-    success_url = reverse_lazy('courses:subscription_delete')
-    success_message = 'Подписка группы на курс удалена'
-
-    @staticmethod
-    def get(request, course_id, group_id):
-        users_in_group = User.objects.filter(groups__id=group_id)
-        Subscription.objects.filter(course_id=course_id, user__in=users_in_group).delete()
-        return redirect('courses:subscriptions_list')

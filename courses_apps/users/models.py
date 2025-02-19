@@ -1,7 +1,11 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
+from courses_apps.courses.models import Course, Chapter
+from courses_apps.tests.models import TestTask
 
+
+# Модель пользователей
 class User(AbstractUser):
     ROLE_CHOICES = [
         ('student', 'Student'),
@@ -18,7 +22,7 @@ class User(AbstractUser):
     )
 
 
-
+# Модель группы
 class Group(models.Model):
     number = models.CharField(max_length=30, null=False)
     year = models.IntegerField(null=False)
@@ -27,8 +31,23 @@ class Group(models.Model):
         return f'Группа: {self.number}, год: {self.year}'
 
 
+# Модель подписок
+class Subscription(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
 
 
+# Модель прогресса по главам
+class ChapterProgress(models.Model):
+    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE)
+    subscription = models.ForeignKey(Subscription, on_delete=models.CASCADE)
+    is_completed = models.BooleanField(default=False)
+
+
+# Модель прогресса по выполненным заданиям. Добавляются в том случае, если задание выполнено
+class TaskProgress(models.Model):
+    test_task = models.ForeignKey(TestTask, on_delete=models.CASCADE)
+    chapter_progress = models.ForeignKey(ChapterProgress, on_delete=models.CASCADE)
 
 
 
