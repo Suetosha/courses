@@ -1,23 +1,10 @@
 from django.contrib.auth.forms import AuthenticationForm, UserChangeForm
 from django import forms
 
-
-import secrets
-import string
-
 from courses_apps.courses.models import Course
 from courses_apps.users.models import User, Group
-
-
-# Генерация уникального логина
-def generate_username():
-    return f"us{secrets.token_hex(4)}"
-
-
-# Генерация случайного пароля
-def generate_password(length=8):
-    alphabet = string.ascii_letters + string.digits
-    return ''.join(secrets.choice(alphabet) for _ in range(length))
+from courses_apps.utils.generate_username import generate_username
+from courses_apps.utils.generate_password import generate_password
 
 
 class UserLoginForm(AuthenticationForm):
@@ -144,7 +131,12 @@ class GroupSearchForm(forms.Form):
 
 
 
-# Создание студента
+class ImportStudentsForm(forms.Form):
+    excel_file = forms.FileField(label='Загрузите Excel файл с данными студентов', required=True)
+
+
+
+
 class CreateStudentForm(forms.ModelForm):
     username = forms.CharField(
         label="Имя пользователя",
@@ -274,3 +266,5 @@ class CreateTeacherForm(forms.ModelForm):
             user.save()
 
         return user
+
+

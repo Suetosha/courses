@@ -1,9 +1,13 @@
+import os
+
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
-from django.shortcuts import redirect
+from django.http import StreamingHttpResponse
+from django.shortcuts import redirect, get_object_or_404
 from django.urls import reverse_lazy
 from django.db.models import Exists, OuterRef
+from django.views import View
 
 from django.views.generic import TemplateView, ListView, FormView, UpdateView, DeleteView, CreateView
 
@@ -11,10 +15,12 @@ from courses_apps.courses.forms import *
 from courses_apps.courses.models import *
 from courses_apps.tests.models import *
 from courses_apps.users.models import Subscription, ChapterProgress, TaskProgress
-from courses_apps.utils.mixins import TitleMixin
+from courses_apps.utils.compiler import run_code
+from courses_apps.utils.mixins import TitleMixin, RedirectTeacherMixin, RedirectStudentMixin, SubscriptionRequiredMixin, \
+    ChapterAccessMixin
 
 
-class HomeTemplateView(LoginRequiredMixin, TitleMixin, TemplateView):
+class HomeTemplateView(LoginRequiredMixin, RedirectTeacherMixin, TitleMixin, TemplateView):
     template_name = "courses/students/home.html"
     title = "Курсы"
 
@@ -23,7 +29,7 @@ class HomeTemplateView(LoginRequiredMixin, TitleMixin, TemplateView):
         query = request.GET.get("query", "").strip()
         category_id = request.GET.get("category")
 
-        courses = Course.objects.filter(status="published")
+        courses = Course.objects.filter(status="published", subscription__user=request.user)
         categories = Category.objects.all()
 
         if query:
@@ -36,7 +42,7 @@ class HomeTemplateView(LoginRequiredMixin, TitleMixin, TemplateView):
         return self.render_to_response(context)
 
 
-class CourseTemplateView(LoginRequiredMixin, TitleMixin, TemplateView):
+class CourseTemplateView(LoginRequiredMixin, RedirectTeacherMixin, SubscriptionRequiredMixin, TitleMixin, TemplateView):
     template_name = "courses/students/course.html"
     title = "Страница курса"
 
@@ -89,7 +95,25 @@ class CourseTemplateView(LoginRequiredMixin, TitleMixin, TemplateView):
         return self.render_to_response(context)
 
 
-class ChapterTemplateView(LoginRequiredMixin, TitleMixin, TemplateView):
+# Вью для обработки видео. Оптимизирует процесс путем деления видео на несколько частей
+class VideoStreamView(View):
+    def get(self, request, content_id, *args, **kwargs):
+        content = get_object_or_404(Content, id=content_id)
+
+        video_path = content.video.path
+
+        def file_iterator(file_name, chunk_size=8192):
+            with open(file_name, "rb") as f:
+                while chunk := f.read(chunk_size):
+                    yield chunk
+
+        response = StreamingHttpResponse(file_iterator(video_path), content_type="video/mp4")
+        response["Content-Disposition"] = f'inline; filename="{os.path.basename(video_path)}"'
+        return response
+
+
+
+class ChapterTemplateView(LoginRequiredMixin, RedirectTeacherMixin, ChapterAccessMixin, TitleMixin, TemplateView):
     template_name = "courses/students/chapter.html"
     title = "Глава"
 
@@ -127,7 +151,7 @@ class ChapterTemplateView(LoginRequiredMixin, TitleMixin, TemplateView):
         return self.render_to_response(context)
 
 
-class TaskTemplateView(LoginRequiredMixin, TitleMixin, TemplateView):
+class TaskTemplateView(LoginRequiredMixin, RedirectTeacherMixin, TitleMixin, TemplateView):
     template_name = "courses/students/task.html"
     title = "Задание"
     form_class = TaskAnswerForm
@@ -165,16 +189,13 @@ class TaskTemplateView(LoginRequiredMixin, TitleMixin, TemplateView):
                 context["form"] = TaskAnswerForm(task=current_task, answers=answers,
                                                  initial={"answers": selected_answers})
 
-
-            elif current_task.is_compiler:
-                context["form"] = None
-
             else:
                 context["form"] = TaskAnswerForm(task=current_task,
                                                  answers=answers,
                                                  initial={"answers": correct_answers.first().text})
+                context["form"]["answers"].label = 'Правильный ответ'
 
-            # Делаем поля формы недоступными для редактирования
+                # Делаем поля формы недоступными для редактирования
             for field in context["form"].fields.values():
                 field.widget.attrs["readonly"] = True
                 field.widget.attrs["disabled"] = True
@@ -204,6 +225,10 @@ class TaskTemplateView(LoginRequiredMixin, TitleMixin, TemplateView):
         if form.is_valid():
             answers = Answer.objects.filter(task=task, is_correct=True)
             form_answers = form.cleaned_data["answers"]
+
+            if task.is_compiler:
+                form_answers = run_code(form_answers)
+
 
             user_answer = form_answers if type(form_answers) == list else [form_answers]
             correct_answer = [str(a.id) for a in answers] if task.is_multiple_choice else [a.text for a in answers]
@@ -250,7 +275,7 @@ class TaskTemplateView(LoginRequiredMixin, TitleMixin, TemplateView):
 #                              Курсы
 
 # Просмотр курсов
-class CoursesListView(LoginRequiredMixin, TitleMixin, ListView):
+class CoursesListView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, ListView):
     template_name = "courses/teachers/courses_list.html"
     title = "Просмотр курсов"
     model = Course
@@ -263,7 +288,7 @@ class CoursesListView(LoginRequiredMixin, TitleMixin, ListView):
 
 
 # Создание курсов
-class CourseCreateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, FormView):
+class CourseCreateView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, SuccessMessageMixin, FormView):
     title = "Создание курса"
     template_name = "courses/teachers/create_course.html"
     form_class = CreateCourseForm
@@ -299,7 +324,7 @@ class CourseCreateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, Form
 
 
 # Редактирование курса
-class CourseUpdateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, UpdateView):
+class CourseUpdateView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, SuccessMessageMixin, UpdateView):
     title = "Редактирование курса"
     template_name = "courses/teachers/update_course.html"
     model = Course
@@ -322,7 +347,7 @@ class CourseUpdateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, Upda
 
 
 # Удаление курса
-class CourseDeleteView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, DeleteView):
+class CourseDeleteView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, SuccessMessageMixin, DeleteView):
     title = "Удаление курса"
     template_name = "courses/teachers/course_confirm_delete.html"
     model = Course
@@ -333,7 +358,7 @@ class CourseDeleteView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, Dele
 #                               Категории
 
 # Создание категорий
-class CategoryCreateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, CreateView):
+class CategoryCreateView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, SuccessMessageMixin, CreateView):
     title = "Создание категории"
     template_name = "courses/teachers/create_category.html"
     form_class = CreateCategoryForm
@@ -343,7 +368,7 @@ class CategoryCreateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, Cr
 
 
 # Удалить категорию
-class CategoryDeleteView(LoginRequiredMixin, DeleteView):
+class CategoryDeleteView(LoginRequiredMixin, RedirectStudentMixin, DeleteView):
     model = Category
     success_url = reverse_lazy('courses:courses_list')
 
@@ -354,7 +379,7 @@ class CategoryDeleteView(LoginRequiredMixin, DeleteView):
 #                              Главы
 
 # Создание глав
-class ChapterUpdateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, TemplateView):
+class ChapterUpdateView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, SuccessMessageMixin, TemplateView):
     title = 'Редактирование главы'
     template_name = 'courses/teachers/update_chapter.html'
 

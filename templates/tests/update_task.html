@@ -5,26 +5,39 @@
     
     
 <div class="container mt-4">
-    <h2 class="text-center">Редактировать задание</h2>
+    <div class="card shadow-lg p-4">
+        <h2 class="text-center mb-4">Редактировать задание</h2>
 
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }} 
-
-        {{ answer_formset.management_form }}
-        {% for form in answer_formset %}
-            <div class="form-group mb-3">
-                {{ form }}
+        <form method="post" class="needs-validation" novalidate>
+            {% csrf_token %}
+            
+            <div class="mb-3">
+                {{ form.as_p }}
             </div>
-        {% endfor %}
 
-        <button type="submit" class="btn btn-primary">Сохранить изменения</button>    
-    </form>
+            <div class="border rounded p-3 mb-4">
+                <h5 class="mb-3">Ответы</h5>
+                {{ answer_formset.management_form }}
+                {% for form in answer_formset %}
+                    <div class="form-group mb-3">
+                        <div class="border p-3 rounded bg-light">
+                            {{ form }}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        
+            <div class="d-flex justify-content-center">
+                <button type="submit" class="btn btn-primary">Обновить</button>            
+            </div>
+        </form>
+    </div>
 
     <div class="d-flex justify-content-center mt-5">
         <a href="{% url 'tests:tasks_list' %}" class="btn btn-secondary">← Вернуться обратно</a>
     </div>
 </div>
+
 
 {% endblock %}
 

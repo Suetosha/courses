@@ -5,19 +5,27 @@ from courses_apps.tests.models import *
 from django.forms import inlineformset_factory
 
 
-
 class CreateTaskForm(forms.ModelForm):
     class Meta:
         model = Task
-        fields = ["question"]
+        fields = ["question", "is_compiler"]
 
     question = forms.CharField(
         label='Вопрос:',
-        widget=forms.TextInput(attrs={
+        widget=forms.Textarea(attrs={
             'class': "form-control",
             'placeholder': "Введите текст вопроса",
             'required': 'Введите текст вопроса'
         }))
+
+    is_compiler = forms.BooleanField(
+        label='Добавить компилятор к заданию',
+        required=False,
+        widget=forms.CheckboxInput(attrs={
+            'class': 'form-check-input',
+        })
+    )
+
 
 
 
@@ -63,26 +71,21 @@ AnswerFormUpdateSet = inlineformset_factory(
 )
 
 
-
 class CreateTestForm(forms.ModelForm):
     class Meta:
         model = Test
-        fields = ['chapter', 'tasks']
+        fields = ["chapter", "tasks"]
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["tasks"].queryset = Task.objects.all()
-        self.fields["chapter"].queryset = Chapter.objects.all()
 
     chapter = forms.ModelChoiceField(
-        queryset=Chapter.objects.none(),
+        queryset=Chapter.objects.all(),
         required=True,
         empty_label="Выберите главу",
         label="Глава"
     )
 
     tasks = forms.ModelMultipleChoiceField(
-        queryset=Task.objects.none(),
+        queryset=Task.objects.all(),
         widget=forms.CheckboxSelectMultiple,
         required=False,
         label="Задания"

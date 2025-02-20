@@ -3,60 +3,91 @@
 
 
 {% block content %}
-<h3 class="d-flex justify-content-center mt-3">Тест</h3>    
+<h3 class="d-flex justify-content-center mt-3">Задание</h3>    
  
-<div class="d-flex justify-content-center mt-3">
-    <div>
-        <pre style="font-family: Arial, sans-serif; font-size: 16px;">
-            {{ current_task.question }}
-        </pre>    
-    </div>
-</div>
-
-    
-<div class="d-flex justify-content-center">
-    <div class="w-25 mb-2">
-        <form method="post">
-            {% csrf_token %}
-            {{ form.as_p }}
-            {% if not is_task_completed %}
-                <div class="text-center mt-2">
-                    <input class='btn btn-primary' type="submit" value="Отправить">
-                </div>
-            {% endif %}
-        </form>
-    </div>
-</div>
-
 <div class="container mt-5" style="max-width: 800px;">
-    <div class="row d-flex flex-wrap justify-content-start">
-        {% for index, task in tasks_in_chapter|enumerate %}
-            <div class="col-auto p-1">
-                <a href="{% url 'courses:task' course_id chapter_id task.id %}"
-                    class="card
-                    
-                    {% if task.is_completed %} 
-                        completed-test-card 
-                    {% else %} 
-                        not-completed-test-card 
-                    {% endif %}">
-                
-                    <div class="card-body p-2 text-center">
-                        <h6 class="card-title mb-0">{{ index }}</h6>
-                    </div>
-                </a>
-            </div>
-        {% endfor %}
+
+    <div class="card shadow-lg border-0 p-3 mb-4">
+        <div class="card-body">
+            <pre class="question">
+                {{ current_task.question }}
+            </pre>
+        </div>
     </div>
-</div>   
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                {{ form.as_p }}
+                {% if not is_task_completed %}
+                    <div class="text-center mt-2">
+                        <input class="btn btn-primary" type="submit" value="Отправить">
+                    </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+
+    <div class="container mt-5" style="max-width: 800px;">
+        <div class="row d-flex flex-wrap justify-content-start">
+            {% for index, task in tasks_in_chapter|enumerate %}
+                <div class="col-auto p-1">
+                    <a href="{% url 'courses:task' course_id chapter_id task.id %}"
+                        class="custom_card
+                        
+                        {% if task.is_completed %} 
+                            completed-test-card 
+                        {% else %} 
+                            not-completed-test-card 
+                        {% endif %}">
+                    
+                        <div class="card-body p-2 text-center">
+                            <h6 class="card-title mb-0">{{ index }}</h6>
+                        </div>
+                    </a>
+                </div>
+            {% endfor %}
+        </div>
+    </div>   
+
+</div>    
     
 <div class="d-flex justify-content-center mt-5">
     <a href="{% url 'courses:chapter' course_id chapter_id %}" class="btn btn-secondary">← Вернуться обратно</a>
 </div>    
     
 <style>
-
-    .card {
+    /* Стиль для вопроса */
+    .question {
+        font-size: 1.3rem;
+        font-weight: 500;
+        color: black;
+        text-align: start;
+        margin-top: 1rem;
+        line-height: 1.6;
+        font-family: "Times New Roman", Times, serif;
+        white-space: pre-line;
+        word-wrap: break-word;
+        overflow: hidden;
+    }
+    
+    
+    /* Стиль для компилятора */
+    .custom-textarea {
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 1.2rem;
+        padding: 12px;
+        width: 100%;
+        white-space: pre-wrap;
+        background-color: #f4f4f4;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+    }
+        
+    /* Общий стиль карточек для тестов */
+    .custom_card {
         width: 50px;
         height: 50px;
         font-size: 14px;
@@ -69,15 +100,15 @@
     
     /* Стиль для карточке, где тест был пройден */
     .completed-test-card {
-        background-color: #28a745;
+        background-color: #c3e6cb;
         border: 2px solid transparent;
-        color: white;
+        color: #212529;
     }
     
     /* Эффект при наведении на карточку с пройденным тестом */
     .completed-test-card:hover {
         border-color: #81c784;
-        color: white;
+        color: #212529;
     }
     
     /* Стиль для карточки с непройденным тестом */

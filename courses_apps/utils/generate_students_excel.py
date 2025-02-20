@@ -5,12 +5,7 @@ from django.http import HttpResponse
 import random
 from django.contrib.auth.hashers import make_password
 from courses_apps.users.models import Group, User
-
-
-def generate_temp_password():
-    length = 8
-    characters = string.ascii_letters + string.digits
-    return ''.join(random.choice(characters) for i in range(length))
+from courses_apps.utils.generate_password import generate_password
 
 
 def generate_excel(group_number, year):
@@ -25,7 +20,7 @@ def generate_excel(group_number, year):
     for student in students:
         for group in student.groups.all():
             # Генерация временного пароля для экспорта
-            temp_password = generate_temp_password()
+            temp_password = generate_password()
 
             # Сохраняем новый пароль в базе данных
             student.password = make_password(temp_password)

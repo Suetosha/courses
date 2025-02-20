@@ -6,11 +6,13 @@ app_name = 'courses'
 
 
 urlpatterns = [
-    path("", HomeTemplateView.as_view(), name='home'),
+
 
     #                 Для студентов
 
+    path("", HomeTemplateView.as_view(), name='home'),
     path("course/<int:course_id>", CourseTemplateView.as_view(), name='course'),
+    path("video/<int:content_id>/", VideoStreamView.as_view(), name="video-stream"),
     path("course/<int:course_id>/chapter/<int:chapter_id>", ChapterTemplateView.as_view(), name='chapter'),
     path("course/<int:course_id>/chapter/<chapter_id>/task/<int:task_id>", TaskTemplateView.as_view(), name='task'),
 

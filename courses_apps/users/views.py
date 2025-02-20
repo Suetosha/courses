@@ -1,4 +1,3 @@
-from django.contrib.auth import login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView
 from django.shortcuts import redirect
@@ -10,9 +9,9 @@ from django.contrib import messages
 from courses_apps.users.models import *
 from courses_apps.users.forms import *
 from courses_apps.users.forms import UserLoginForm, UserProfileForm
+from courses_apps.utils.add_students_excel import import_students_from_excel
 from courses_apps.utils.generate_students_excel import generate_excel
-from courses_apps.utils.mixins import TitleMixin
-
+from courses_apps.utils.mixins import TitleMixin, RedirectStudentMixin
 
 
 class UserLoginView(TitleMixin, LoginView):
@@ -60,7 +59,7 @@ class UserProfileView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, Updat
 #                                 Студенты
 
 # Просмотр студентов + функционал создания Excel
-class StudentListView(LoginRequiredMixin, TitleMixin, ListView):
+class StudentListView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, ListView):
     title = 'Список студентов'
     template_name = 'users/students_list.html'
     model = User
@@ -82,21 +81,41 @@ class StudentListView(LoginRequiredMixin, TitleMixin, ListView):
         context = super().get_context_data(**kwargs)
         form = GroupSearchForm(self.request.GET or None)
         context['form'] = form
+        context['import_form'] = ImportStudentsForm()
         return context
 
-
     def post(self, request, *args, **kwargs):
+        print('request.FILES', request.FILES)
+
+        # Если отправлен файл на добавление студентов
+        if "excel_file" in request.FILES:
+            print('1')
+            import_form = ImportStudentsForm(request.POST, request.FILES)
+            if import_form.is_valid():
+                print('2')
+                excel_file = request.FILES['excel_file']
+                print(excel_file)
+                try:
+                    import_students_from_excel(excel_file)
+                    messages.success(request, "Студенты успешно загружены.")
+                except Exception as e:
+                    messages.error(request, f"Ошибка при загрузке: {str(e)}")
+            else:
+                messages.error(request, "Ошибка валидации файла.")
+            return redirect("users:students_list")
+
+        # Если отправлен запрос на экспорт студентов в Excel
         form = GroupSearchForm(request.POST)
         if form.is_valid():
             group_number = form.cleaned_data['group_number']
             year = form.cleaned_data['year']
             return generate_excel(group_number, year)
+
         return self.get(request, *args, **kwargs)
 
 
-
 # Добавление студентов
-class StudentCreateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, CreateView):
+class StudentCreateView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, SuccessMessageMixin, CreateView):
     title = 'Добавление студента'
     template_name = 'users/create_user.html'
     model = User
@@ -106,7 +125,7 @@ class StudentCreateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, Cre
 
 
 # Удаление студента
-class StudentDeleteView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, DeleteView):
+class StudentDeleteView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, SuccessMessageMixin, DeleteView):
     title = 'Удалить студента'
     template_name = "users/student_confirm_delete.html"
     model = User
@@ -118,7 +137,7 @@ class StudentDeleteView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, Del
 #                         Подписки
 
 # Просмотр подписок, их создание
-class SubscriptionListView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, ListView):
+class SubscriptionListView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, SuccessMessageMixin, ListView):
     title = "Подписки на курс"
     template_name = "users/subscription_list.html"
     model = Subscription
@@ -161,7 +180,7 @@ class SubscriptionListView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, 
 
 
 # Удаление подписки группы на курс
-class SubscriptionDeleteView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, View):
+class SubscriptionDeleteView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, SuccessMessageMixin, View):
     title = 'Удалить подписку группы на курс'
     model = Subscription
     success_url = reverse_lazy('users:subscription_delete')
@@ -178,7 +197,7 @@ class SubscriptionDeleteView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin
 #                              Преподаватели
 
 # Просмотр преподавателя
-class TeachersListView(LoginRequiredMixin, TitleMixin, ListView):
+class TeachersListView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, ListView):
     title = "Список преподавателей"
     template_name = 'users/teachers_list.html'
     model = User
@@ -190,7 +209,7 @@ class TeachersListView(LoginRequiredMixin, TitleMixin, ListView):
 
 
 # Добавление преподавателя
-class TeacherCreateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, CreateView):
+class TeacherCreateView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin,  SuccessMessageMixin, CreateView):
     title = 'Добавление учителя'
     template_name = 'users/create_user.html'
     model = User

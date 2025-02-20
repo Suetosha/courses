@@ -20,6 +20,20 @@ class TaskAnswerForm(forms.Form):
                 })
             )
 
+        elif task.is_compiler:
+            # Если нужно большое поле для кода
+            self.fields["answers"] = forms.CharField(
+                label='Введите код:',
+                widget=forms.Textarea(attrs={
+                    'class': 'form-control custom-textarea',
+                    'placeholder': 'Введите код',
+                    'required': 'Введите код',
+                    'rows': 10,
+                    'cols': 50
+                })
+            )
+
+
         elif task.is_multiple_choice:
 
             choices = [(answer.id, answer.text) for answer in answers]
@@ -47,10 +61,6 @@ class CreateCourseForm(forms.ModelForm):
         model = Course
         fields = ['title', 'description', 'status', 'category']
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['category'].queryset = Category.objects.all()
-
     title = forms.CharField(
         label='Курс',
         widget=forms.TextInput(attrs={
@@ -75,7 +85,7 @@ class CreateCourseForm(forms.ModelForm):
     )
 
     category = forms.ModelChoiceField(
-        queryset=None,
+        queryset=Category.objects.all(),
         label='Категория',
         widget=forms.Select(attrs={'class': "form-select"}))
 
@@ -102,6 +112,7 @@ ChapterFormSet = inlineformset_factory(
     extra=1,  # Изначальное количество глав
     can_delete=True  # Возможность удалить главы
 )
+
 
 
 class CreateCategoryForm(forms.ModelForm):

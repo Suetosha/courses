@@ -3,22 +3,32 @@
 {% block content %}
     <div class="container mt-4">
         
-        <div class="d-flex justify-content-end mt-5">
-            <form method="post" class="mb-4">
-                <h3>Получить список студентов в Excel</h3>
+        <div class="d-flex flex-column align-items-end mt-5">
+            
+            <form method="post" class="mb-4 d-flex flex-column">
+                <h3 class="mb-2">Получить список студентов в Excel</h3>
                 {% csrf_token %}
                 {{ form.as_p }}
                 <h6>* Учитывайте, что существующие пароли студентов обновятся</h6>
-                <button type="submit" class="btn btn-success">Получить список в Excel</button>
+                <button type="submit" class="btn btn-success mt-2">Получить список</button>
             </form>
-        </div>    
+            
+            <form method="post" enctype="multipart/form-data" class="mb-4 mt-5 d-flex flex-column">
+                <h3>Добавить студентов через Excel</h3>
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="excel_file">Загрузить файл</label>
+                    <input type="file" name="excel_file" class="form-control" accept=".xlsx" required>
+                </div>
+                <button type="submit" class="btn btn-primary mt-2">Добавить студентов</button>
+            </form>        
+        </div>
+
+
 
         
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1>Список студентов</h1>
-            <div class="d-flex justify-content-end">
-                <a href="{% url 'users:create_student' %}" class="btn btn-primary ms-5">Добавить студента</a>    
-            </div>
         </div>
         
         <table class="table table-bordered">
@@ -58,6 +68,11 @@
                 {% endfor %}
             </tbody>
         </table>
+    
+        <div class="d-flex justify-content-center mt-5">
+            <a href="{% url 'users:create_student' %}" class="btn btn-primary ms-5">Добавить студента</a>    
+        </div>
+    
     </div>
 {% endblock %}
 

@@ -4,20 +4,20 @@
 
 <div class="container mt-5">
 
-    <div class="d-flex justify-content-center mt-5 mb-xl-5">
+    <div class="d-flex justify-content-center mt-5">
     
-        <div class="card p-4 bg-light me-6">
+        <div class="card p-4 bg-light me-5">
             <h3 class="text-center mb-3">Как создать курс?</h3>
             <p>
                 1. <strong>Создайте курс</strong> – укажите название, категорию, описание, главы.<br>
-                3. <strong>Редактируйте главы</strong> – внутри каждого курса можно отредактировать главы, добавить материалы.<br>
-                4. <strong>Создайте задания</strong> – в верхней вкладке "Задания" создайте несколько заданий для главы.<br>
-                5. <strong>Создайте тест</strong> - в верхней вкладке "Тесты" создайте тест из нескольких заданий и соедините с главой.<br>
-                6. <strong>Подпишите группу на курс</strong> - в верхней вкладке "Подписки на курс" добавьте группу в курс.
+                2. <strong>Редактируйте главы</strong> – внутри каждого курса можно отредактировать главы, добавить материалы.<br>
+                3. <strong>Создайте задания</strong> – в верхней вкладке "Задания" создайте несколько заданий для главы.<br>
+                4. <strong>Создайте тест</strong> - в верхней вкладке "Тесты" создайте тест из нескольких заданий и соедините с главой.<br>
+                5. <strong>Подпишите группу на курс</strong> - в верхней вкладке "Подписки на курс" добавьте группу в курс.
             </p>
         </div>
     
-        <div class="card mt-6">
+        <div class="card">
             <div class="card-header">
                 <h5>Список категорий</h5>
             </div>
@@ -43,13 +43,12 @@
                     </tbody>
                 </table>
             </div>
-
-        <a href="{% url 'courses:create_category' %}" class="btn btn-primary ">Создать категорию</a>
+            <a href="{% url 'courses:create_category' %}" class="btn btn-primary">Создать категорию</a>
         </div>
-    </div>     
+    </div>
 
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 mt-5">
         <h1>Список курсов</h1>
     </div>
 
@@ -69,7 +68,7 @@
                 <tr>
                     <td>{{ course.title }}</td>
                     <td>{{ course.description|truncatechars:50 }}</td>
-                    <td>{{ course.status }}</td>
+                    <td>{{ course.get_status_display }}</td>
                     <td>{{ course.category.name }}</td>
                     <td class="text-center">
                         <a href="{% url 'courses:edit_course' course.id %}" class="text-warning me-2">

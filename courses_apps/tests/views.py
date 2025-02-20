@@ -8,14 +8,13 @@ from courses_apps.courses.forms import *
 from courses_apps.tests.forms import *
 from courses_apps.tests.models import *
 
-from courses_apps.utils.mixins import TitleMixin
-
+from courses_apps.utils.mixins import TitleMixin, RedirectStudentMixin
 
 
 #                                   Задания
 
 # Просмотр заданий
-class TaskListView(LoginRequiredMixin, TitleMixin, ListView):
+class TaskListView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, ListView):
     title = "Просмотр заданий"
     template_name = "tests/tasks_list.html"
     model = Task
@@ -26,7 +25,7 @@ class TaskListView(LoginRequiredMixin, TitleMixin, ListView):
 
 
 # Создание задания
-class TaskCreateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, CreateView):
+class TaskCreateView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, SuccessMessageMixin, CreateView):
     title = 'Создание задания'
     template_name = "tests/create_task.html"
     model = Task
@@ -52,12 +51,13 @@ class TaskCreateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, Create
         if answer_formset.is_valid():
             answers = answer_formset.save(commit=False)
 
-            if len(answers) == 1:
+            if len(answers) == 1 and not self.object.is_compiler:
                 self.object.is_text_input = True
-                self.object.save()
-            else:
+            elif len(answers) > 1:
                 self.object.is_multiple_choice = True
-                self.object.save()
+
+
+            self.object.save()
 
             # Проходим по всем ответам и сохраняем их
             for answer in answers:
@@ -68,7 +68,7 @@ class TaskCreateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, Create
 
 
 # Редактирование задания
-class TaskUpdateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, UpdateView):
+class TaskUpdateView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, SuccessMessageMixin, UpdateView):
     title = 'Редактировать задание'
     model = Task
     template_name = "tests/update_task.html"
@@ -106,7 +106,7 @@ class TaskUpdateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, Update
 
 
 # Удаление задания
-class TaskDeleteView(LoginRequiredMixin, DeleteView):
+class TaskDeleteView(LoginRequiredMixin, RedirectStudentMixin, DeleteView):
     model = Task
     success_url = reverse_lazy('tests:tasks_list')
 
@@ -118,7 +118,7 @@ class TaskDeleteView(LoginRequiredMixin, DeleteView):
 #                                Тесты
 
 # Просмотр тестов
-class TestListView(LoginRequiredMixin,TitleMixin, ListView):
+class TestListView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, ListView):
     title = 'Просмотр тестов'
     template_name = 'tests/tests_list.html'
     model = Chapter
@@ -153,7 +153,7 @@ class TestListView(LoginRequiredMixin,TitleMixin, ListView):
 
 
 # Создание теста
-class TestCreateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, CreateView):
+class TestCreateView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, SuccessMessageMixin, CreateView):
     title = 'Создание теста'
     template_name = 'tests/create_test.html'
     model = Test
@@ -166,14 +166,14 @@ class TestCreateView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, Create
         test = form.save()
 
         tasks = form.cleaned_data['tasks']
-        # Используем set() для установки связи с задачами
+        # Используем set для установки связи с задачами
         test.tasks.set(tasks)
 
         return super().form_valid(form)
 
 
 # Удаление теста
-class TestDeleteView(LoginRequiredMixin, DeleteView):
+class TestDeleteView(LoginRequiredMixin, RedirectStudentMixin, DeleteView):
     model = Test
     success_url = reverse_lazy('tests:tests_list')
 
