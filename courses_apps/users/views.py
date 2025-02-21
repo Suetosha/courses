@@ -1,10 +1,11 @@
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView
+
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.generic import *
 from django.contrib.messages.views import SuccessMessageMixin
-from django.contrib import messages
 
 from courses_apps.users.models import *
 from courses_apps.users.forms import *
@@ -13,7 +14,9 @@ from courses_apps.utils.add_students_excel import import_students_from_excel
 from courses_apps.utils.generate_students_excel import generate_excel
 from courses_apps.utils.mixins import TitleMixin, RedirectStudentMixin
 
+#                             Пользователи
 
+# Авторизация пользователя
 class UserLoginView(TitleMixin, LoginView):
     template_name = 'users/login.html'
     form_class = UserLoginForm
@@ -39,6 +42,13 @@ class UserProfileView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, Updat
         return reverse_lazy('users:profile', args=(self.object.id,))
 
 
+    def form_invalid(self, form):
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(self.request, error)
+        return super().form_invalid(form)
+
+
     def get_context_data(self, **kwargs):
         context = super(UserProfileView, self).get_context_data(**kwargs)
         courses = Course.objects.filter(subscription__user_id=self.request.user.id)
@@ -55,10 +65,15 @@ class UserProfileView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, Updat
         context['courses'] = courses
         return context
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
+
 
 #                                 Студенты
 
-# Просмотр студентов + функционал создания Excel
+# Просмотр студентов + функционал создания эксель и добавление студентов через эксель
 class StudentListView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, ListView):
     title = 'Список студентов'
     template_name = 'users/students_list.html'
@@ -79,22 +94,17 @@ class StudentListView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, List
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        form = GroupSearchForm(self.request.GET or None)
-        context['form'] = form
+        context['group_form'] = GroupSearchForm(self.request.GET)
         context['import_form'] = ImportStudentsForm()
         return context
 
     def post(self, request, *args, **kwargs):
-        print('request.FILES', request.FILES)
 
         # Если отправлен файл на добавление студентов
         if "excel_file" in request.FILES:
-            print('1')
             import_form = ImportStudentsForm(request.POST, request.FILES)
             if import_form.is_valid():
-                print('2')
                 excel_file = request.FILES['excel_file']
-                print(excel_file)
                 try:
                     import_students_from_excel(excel_file)
                     messages.success(request, "Студенты успешно загружены.")
@@ -105,11 +115,16 @@ class StudentListView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, List
             return redirect("users:students_list")
 
         # Если отправлен запрос на экспорт студентов в Excel
-        form = GroupSearchForm(request.POST)
-        if form.is_valid():
-            group_number = form.cleaned_data['group_number']
-            year = form.cleaned_data['year']
-            return generate_excel(group_number, year)
+        group_form = GroupSearchForm(request.POST)
+        if group_form.is_valid():
+            group = group_form.cleaned_data['groups']
+            students = User.objects.filter(groups=group).exists()
+            if not students:
+                messages.error(request,"В данной группе нет студентов")
+            elif group:
+                return generate_excel(group.number, group.year)
+            else:
+                messages.error(request,"Группа не выбрана")
 
         return self.get(request, *args, **kwargs)
 
@@ -156,7 +171,7 @@ class SubscriptionListView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin,
                 course_groups[sub.course] = set()
             course_groups[sub.course].update(sub.user.groups.all())
 
-        context['subscriptions'] = {course: list(groups) for course, groups in course_groups.items()}
+        context['subscriptions'] = {course: groups for course, groups in course_groups.items()}
 
         return context
 
@@ -191,7 +206,6 @@ class SubscriptionDeleteView(LoginRequiredMixin, RedirectStudentMixin, TitleMixi
         users_in_group = User.objects.filter(groups__id=group_id)
         Subscription.objects.filter(course_id=course_id, user__in=users_in_group).delete()
         return redirect('users:subscriptions_list')
-
 
 
 #                              Преподаватели

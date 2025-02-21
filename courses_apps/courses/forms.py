@@ -4,6 +4,12 @@ from django.forms import inlineformset_factory
 from courses_apps.courses.models import Course, Category, Chapter, Content
 
 
+# Форма для ответа в задании
+# Имеет 4 варианта:
+# 1) Текстовое поле
+# 2) Поле для кода
+# 3) Радиокнопки для одного правильного ответа
+# 4) Чекбоксы для нескольких правильных ответов
 
 class TaskAnswerForm(forms.Form):
     def __init__(self, task, answers, *args, **kwargs):
@@ -33,7 +39,6 @@ class TaskAnswerForm(forms.Form):
                 })
             )
 
-
         elif task.is_multiple_choice:
 
             choices = [(answer.id, answer.text) for answer in answers]
@@ -55,7 +60,7 @@ class TaskAnswerForm(forms.Form):
                 )
 
 
-
+# Форма для создания курса
 class CreateCourseForm(forms.ModelForm):
     class Meta:
         model = Course
@@ -90,6 +95,7 @@ class CreateCourseForm(forms.ModelForm):
         widget=forms.Select(attrs={'class': "form-select"}))
 
 
+# Форма для создания глав
 class ChapterForm(forms.ModelForm):
     class Meta:
         model = Chapter
@@ -114,7 +120,7 @@ ChapterFormSet = inlineformset_factory(
 )
 
 
-
+# Форма для создания категории
 class CreateCategoryForm(forms.ModelForm):
     class Meta:
         model = Category
@@ -129,6 +135,7 @@ class CreateCategoryForm(forms.ModelForm):
         }))
 
 
+# Форма для создания контента для глав
 class CreateContentForm(forms.ModelForm):
     class Meta:
         model = Content
@@ -164,10 +171,3 @@ class CreateContentForm(forms.ModelForm):
         }),
 
     )
-
-
-
-
-
-
-

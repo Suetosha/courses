@@ -1,5 +1,6 @@
-from django.contrib.auth.forms import AuthenticationForm, UserChangeForm
+from django.contrib.auth.forms import AuthenticationForm
 from django import forms
+from django.core.exceptions import ValidationError
 
 from courses_apps.courses.models import Course
 from courses_apps.users.models import User, Group
@@ -7,6 +8,7 @@ from courses_apps.utils.generate_username import generate_username
 from courses_apps.utils.generate_password import generate_password
 
 
+# Форма авторизации пользователя
 class UserLoginForm(AuthenticationForm):
     username = forms.CharField(label='Логин', widget=forms.TextInput(attrs={
         'class': "form-control", 'placeholder': "Введите логин пользователя"}))
@@ -21,25 +23,11 @@ class UserLoginForm(AuthenticationForm):
 
 
 
-class UserProfileForm(UserChangeForm):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        user = kwargs.pop('instance', None)
-        group = user.groups.first()
-
-        if user and user.role == "teacher" or (user and user.is_superuser):
-            # Убираем поля для учителей и суперпользователей
-            self.fields.pop("group_number", None)
-            self.fields.pop("year", None)
-        else:
-            self.fields["group_number"].initial = group.number
-            self.fields["year"].initial = group.year
-
-        for field in self.fields.values():
-            field.help_text = ''
-        if "password" in self.fields:
-            del self.fields["password"]
-
+# Форма для изменения пароля в профиле пользователя, остальные поля доступны только для чтения
+class UserProfileForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'password1', 'password2', 'group_number', 'year']
 
     first_name = forms.CharField(label="Имя", required=False, widget=forms.TextInput(attrs={
         'class': "form-control py-4", 'placeholder': "Введите имя", 'readonly': 'readonly'}))
@@ -53,35 +41,67 @@ class UserProfileForm(UserChangeForm):
     password2 = forms.CharField(label='Повторите пароль', required=False, widget=forms.PasswordInput(attrs={
         'class': "form-control py-4", 'placeholder': "Повторите пароль"}))
 
-    group_number = forms.CharField(label='Номер группы', required=True, widget=forms.TextInput(attrs={
-        'class': "form-control py-4", 'placeholder': "Введите номер группы", 'readonly': 'readonly'
+    group_number = forms.CharField(label='Номер группы', required=False, widget=forms.TextInput(attrs={
+        'class': "form-control py-4", 'readonly': 'readonly'
     }))
 
-    year = forms.CharField(label='Год', required=True, widget=forms.TextInput(attrs={
-        'class': "form-control", 'placeholder': "Введите год", 'readonly': 'readonly'
+    year = forms.CharField(label='Год', required=False, widget=forms.TextInput(attrs={
+        'class': "form-control", 'readonly': 'readonly'
     }))
 
 
-    class Meta:
-        model = User
-        fields = ['first_name', 'last_name', 'password1', 'password2', 'group_number', 'year']
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+
+        if user:
+            self.user = user
+            self.fields["first_name"].initial = user.first_name
+            self.fields["last_name"].initial = user.last_name
+
+            group = user.groups.first()
+            if group:
+                self.fields["group_number"].initial = getattr(group, "number", "")
+                self.fields["year"].initial = getattr(group, "year", "")
+
+            if user.role == "teacher" or user.is_superuser:
+                self.fields.pop("group_number", None)
+                self.fields.pop("year", None)
+
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password1 = cleaned_data.get("password1")
+        password2 = cleaned_data.get("password2")
+        print(password1, password2)
+        if password1 and password2 and password1 != password2:
+            raise ValidationError("Пароли не совпадают")
+
+        return cleaned_data
+
 
     def save(self, commit=True):
-        user = super().save(commit=False)
+        user = self.user
+        password1 = self.cleaned_data.get("password1")
 
-        group_number = self.cleaned_data.get('group_number')
-        year = self.cleaned_data.get('year')
+        if password1:
+            user.set_password(password1)
 
-        group, _ = Group.objects.update_or_create(number=group_number, year=year)
-        if group:
-            user.groups.set([group])
+        if user.role == 'student':
+            group_number = self.cleaned_data.get("group_number")
+            year = self.cleaned_data.get("year")
+
+            if group_number and year:
+                group, _ = Group.objects.get_or_create(number=group_number, year=year)
+                user.groups.set([group])
 
         if commit:
             user.save()
-
         return user
 
 
+
+# Форма создания подписки
 class SubscriptionForm(forms.Form):
     course = forms.ModelChoiceField(
         label="Курс",
@@ -98,52 +118,35 @@ class SubscriptionForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        courses = Course.objects.all().order_by('title')
-        groups = Group.objects.all().order_by('number')
-
-        self.fields['course'].queryset = courses
-        self.fields['group'].queryset = groups
+        self.fields['course'].queryset = Course.objects.all().order_by('title')
+        self.fields['group'].queryset = Group.objects.all().order_by('number')
 
 
 
+# Форма для получения экселя группы
 class GroupSearchForm(forms.Form):
-    group_number = forms.ChoiceField(
-        label='Номер группы',
-        choices=[],
-        widget=forms.Select(attrs={'class': 'form-control', 'placeholder': 'Выберите номер группы'})
-    )
-    year = forms.ChoiceField(
-        label='Год',
-        choices=[],
-        widget=forms.Select(attrs={'class': 'form-control', 'placeholder': 'Выберите год'})
+    groups = forms.ModelChoiceField(
+        label='Номер группы и год',
+        queryset=Group.objects.all().distinct().order_by('number', 'year'),
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-control'})
     )
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
 
-        # Получаем уникальные номера групп и года
-        group_numbers = Group.objects.values_list('number', flat=True).distinct().order_by('number')
-        years = Group.objects.values_list('year', flat=True).distinct().order_by('year')
-
-        # Добавляем эти значения в поля
-        self.fields['group_number'].choices = [(num, num) for num in group_numbers]
-        self.fields['year'].choices = [(year, year) for year in years]
-
-
-
+# Форма для добавления студентов путем загрузки экселя
 class ImportStudentsForm(forms.Form):
     excel_file = forms.FileField(label='Загрузите Excel файл с данными студентов', required=True)
 
 
 
-
+# Форма создания студента
 class CreateStudentForm(forms.ModelForm):
     username = forms.CharField(
         label="Имя пользователя",
         widget=forms.TextInput(attrs={'class': "form-control", 'readonly': 'readonly'})
     )
 
-    password1 = forms.CharField(
+    password = forms.CharField(
         label='Пароль',
         required=False,
         widget=forms.TextInput(attrs={'class': "form-control", 'readonly': 'readonly'})
@@ -173,7 +176,8 @@ class CreateStudentForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ['username', 'password1', 'first_name', 'last_name']
+        fields = ['username', 'password', 'first_name', 'last_name']
+
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -182,31 +186,27 @@ class CreateStudentForm(forms.ModelForm):
         self.fields['username'].initial = generate_username()
 
         # Генерация пароля
-        self.fields['password1'].initial = generate_password()
+        self.fields['password'].initial = generate_password()
+
 
     def save(self, commit=True):
         user = super().save(commit=False)
         user.role = 'student'
 
-        # Устанавливаем логин и пароль
         user.username = self.cleaned_data['username']
-        password = self.cleaned_data['password1']
+        password = self.cleaned_data['password']
 
         user.set_password(password)
         user.set_password(password)
 
-        # Сохраняем пользователя, чтобы получить айди
         if commit:
             user.save()
 
-        # Получаем номер группы и год
         group_number = self.cleaned_data.get('group_number')
         year = self.cleaned_data.get('year')
 
-        # Создаем или находим группу
         group, _ = Group.objects.get_or_create(number=group_number, year=year)
 
-        # Добавляем пользователя в группу после сохранения
         user.groups.add(group)
 
         return user
@@ -240,6 +240,7 @@ class CreateTeacherForm(forms.ModelForm):
         model = User
         fields = ['username', 'password1', 'first_name', 'last_name']
 
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -261,7 +262,6 @@ class CreateTeacherForm(forms.ModelForm):
         user.set_password(password)
         user.set_password(password)
 
-        # Сохраняем пользователя, чтобы получить айди
         if commit:
             user.save()
 

@@ -8,7 +8,7 @@
             <form method="post" class="mb-4 d-flex flex-column">
                 <h3 class="mb-2">Получить список студентов в Excel</h3>
                 {% csrf_token %}
-                {{ form.as_p }}
+                {{ group_form.as_p }}
                 <h6>* Учитывайте, что существующие пароли студентов обновятся</h6>
                 <button type="submit" class="btn btn-success mt-2">Получить список</button>
             </form>
@@ -21,10 +21,9 @@
                     <input type="file" name="excel_file" class="form-control" accept=".xlsx" required>
                 </div>
                 <button type="submit" class="btn btn-primary mt-2">Добавить студентов</button>
-            </form>        
+            </form>     
+            
         </div>
-
-
 
         
         <div class="d-flex justify-content-between align-items-center mb-4">

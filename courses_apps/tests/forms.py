@@ -27,8 +27,6 @@ class CreateTaskForm(forms.ModelForm):
     )
 
 
-
-
 class AnswerTestForm(forms.ModelForm):
     class Meta:
         model = Answer
@@ -52,8 +50,7 @@ class AnswerTestForm(forms.ModelForm):
     )
 
 
-
-# Создаём InlineFormSet для модели Answer - create_task/update_task (Для динамического добавления вопросов)
+# Создаём InlineFormSet для модели Answer - в create_task или update_task (Для динамического добавления вопросов)
 AnswerFormCreateSet = inlineformset_factory(
     Task, Answer,
     form=AnswerTestForm,
@@ -71,11 +68,11 @@ AnswerFormUpdateSet = inlineformset_factory(
 )
 
 
+# Форма создания теста
 class CreateTestForm(forms.ModelForm):
     class Meta:
         model = Test
         fields = ["chapter", "tasks"]
-
 
     chapter = forms.ModelChoiceField(
         queryset=Chapter.objects.all(),

@@ -1,4 +1,3 @@
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect
 from django.contrib import messages
@@ -11,18 +10,16 @@ from courses_apps.users.models import Subscription, ChapterProgress
 class TitleMixin:
     title = None
 
-    def get_context_data(self,*args, **kwargs):
+    def get_context_data(self, *args, **kwargs):
         context = super(TitleMixin, self).get_context_data(*args, **kwargs)
         context['title'] = self.title
         return context
-
 
 
 # Миксин для проверки наличия подписки на данный курс
 class SubscriptionRequiredMixin:
 
     def dispatch(self, request, *args, **kwargs):
-
         course_id = kwargs.get("course_id")
         course = Course.objects.filter(id=course_id).first()
 
@@ -85,7 +82,6 @@ class RedirectTeacherMixin:
             return redirect("courses:courses_list")
 
         return super().dispatch(request, *args, **kwargs)
-
 
 
 # Миксин для закрытия доступа к функционалу преподавателей или суперюзеров

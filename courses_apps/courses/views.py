@@ -20,6 +20,9 @@ from courses_apps.utils.mixins import TitleMixin, RedirectTeacherMixin, Redirect
     ChapterAccessMixin
 
 
+#                           Прохождение курсов - функционал для студентов
+
+# Главная страница с курсами для студента
 class HomeTemplateView(LoginRequiredMixin, RedirectTeacherMixin, TitleMixin, TemplateView):
     template_name = "courses/students/home.html"
     title = "Курсы"
@@ -42,6 +45,7 @@ class HomeTemplateView(LoginRequiredMixin, RedirectTeacherMixin, TitleMixin, Tem
         return self.render_to_response(context)
 
 
+# Страница курса
 class CourseTemplateView(LoginRequiredMixin, RedirectTeacherMixin, SubscriptionRequiredMixin, TitleMixin, TemplateView):
     template_name = "courses/students/course.html"
     title = "Страница курса"
@@ -68,8 +72,6 @@ class CourseTemplateView(LoginRequiredMixin, RedirectTeacherMixin, SubscriptionR
 
                 chapter.is_completed = chapter_progress.is_completed
 
-
-
         # Определяем доступность глав
         for i, chapter in enumerate(chapters):
             if i == 0:
@@ -88,7 +90,6 @@ class CourseTemplateView(LoginRequiredMixin, RedirectTeacherMixin, SubscriptionR
                     chapter.is_accessible = prev_completed_count > 0
                 else:
                     chapter.is_accessible = False
-
 
         context['course'] = course
         context['chapters'] = chapters
@@ -112,7 +113,7 @@ class VideoStreamView(View):
         return response
 
 
-
+# Страница главы
 class ChapterTemplateView(LoginRequiredMixin, RedirectTeacherMixin, ChapterAccessMixin, TitleMixin, TemplateView):
     template_name = "courses/students/chapter.html"
     title = "Глава"
@@ -128,7 +129,6 @@ class ChapterTemplateView(LoginRequiredMixin, RedirectTeacherMixin, ChapterAcces
         # Создаем или получаем прогресс по главе
         chapter_progress, _ = ChapterProgress.objects.get_or_create(
             chapter=chapter, subscription=subscription)
-
 
         # Добавляем к каждому заданию флаг is_completed=True, если он есть в TaskProgress
         tasks_in_chapter = Task.objects.filter(
@@ -151,11 +151,11 @@ class ChapterTemplateView(LoginRequiredMixin, RedirectTeacherMixin, ChapterAcces
         return self.render_to_response(context)
 
 
+# Страница задания
 class TaskTemplateView(LoginRequiredMixin, RedirectTeacherMixin, TitleMixin, TemplateView):
     template_name = "courses/students/task.html"
     title = "Задание"
     form_class = TaskAnswerForm
-
 
     def get(self, request, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
@@ -172,7 +172,6 @@ class TaskTemplateView(LoginRequiredMixin, RedirectTeacherMixin, TitleMixin, Tem
         # Добавляем флаг is_completed = True, если айди задания есть в task_progress
         tasks_in_chapter = (Task.objects.filter(tests__chapter_id=chapter_id)
                             .annotate(is_completed=Exists(task_progress.filter(test_task__task=OuterRef("id")))))
-
 
         # Получение текущего задания
         current_task = tasks_in_chapter.get(id=task_id)
@@ -193,6 +192,7 @@ class TaskTemplateView(LoginRequiredMixin, RedirectTeacherMixin, TitleMixin, Tem
                 context["form"] = TaskAnswerForm(task=current_task,
                                                  answers=answers,
                                                  initial={"answers": correct_answers.first().text})
+
                 context["form"]["answers"].label = 'Правильный ответ'
 
                 # Делаем поля формы недоступными для редактирования
@@ -216,7 +216,6 @@ class TaskTemplateView(LoginRequiredMixin, RedirectTeacherMixin, TitleMixin, Tem
 
         return self.render_to_response(context)
 
-
     def post(self, request, **kwargs):
         task = Task.objects.get(id=kwargs["task_id"])
         answers = Answer.objects.filter(task=task)
@@ -228,7 +227,6 @@ class TaskTemplateView(LoginRequiredMixin, RedirectTeacherMixin, TitleMixin, Tem
 
             if task.is_compiler:
                 form_answers = run_code(form_answers)
-
 
             user_answer = form_answers if type(form_answers) == list else [form_answers]
             correct_answer = [str(a.id) for a in answers] if task.is_multiple_choice else [a.text for a in answers]
@@ -272,7 +270,7 @@ class TaskTemplateView(LoginRequiredMixin, RedirectTeacherMixin, TitleMixin, Tem
             return redirect("courses:task", kwargs["course_id"], kwargs["chapter_id"], kwargs["task_id"])
 
 
-#                              Курсы
+#                              Курсы - Функционал для преподавателя
 
 # Просмотр курсов
 class CoursesListView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, ListView):
@@ -281,7 +279,7 @@ class CoursesListView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, List
     model = Course
     context_object_name = 'courses'
 
-    def get_context_data(self,*args, **kwargs):
+    def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(**kwargs)
         context['categories'] = Category.objects.all()
         return context
@@ -355,7 +353,7 @@ class CourseDeleteView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, Suc
     success_message = "Курс успешно удален"
 
 
-#                               Категории
+#                               Категории - функционал для преподавателя
 
 # Создание категорий
 class CategoryCreateView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, SuccessMessageMixin, CreateView):
@@ -376,16 +374,14 @@ class CategoryDeleteView(LoginRequiredMixin, RedirectStudentMixin, DeleteView):
         return self.delete(request, *args, **kwargs)
 
 
-#                              Главы
+#                              Главы - функционал для преподавателя
 
 # Создание глав
 class ChapterUpdateView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, SuccessMessageMixin, TemplateView):
     title = 'Редактирование главы'
     template_name = 'courses/teachers/update_chapter.html'
 
-
     def get_context_data(self, **kwargs):
-        # Получаем объект главы
         chapter = Chapter.objects.get(id=self.kwargs['pk'])
 
         # Создаем формы
@@ -411,7 +407,6 @@ class ChapterUpdateView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, Su
             chapter_form.save()
             messages.success(request, 'Название главы успешно обновлено')
             return redirect(reverse_lazy('courses:edit_chapter', kwargs={'pk': chapter.id}))
-
 
         if 'update_content' in request.POST.dict() and content_form.is_valid():
             content, _ = Content.objects.get_or_create(chapter=chapter)
@@ -442,4 +437,3 @@ class ChapterUpdateView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, Su
         context['content_form'] = content_form
 
         return self.render_to_response(context)
-

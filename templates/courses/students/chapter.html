@@ -2,138 +2,77 @@
 {% load enumerate %}
 
 {% block content %}
-    
-<h3 class="text-center mt-5 mb-5">{{ chapter.title }}</h3>    
-{% if chapter_content %}    
-    <div class="container mt-5" style="max-width: 1200px;">
-        <div class="card shadow-lg p-4">
-            <div class="card-body">
-                {% if chapter_content.text %}
-                    <div class="row">
-                        <div class="card text-card shadow-sm p-3">
-                            <div class="card-body">
-                                <pre class="content-text">{{ chapter_content.text }}</pre>
+    <h3 class="text-center mt-5 mb-5">{{ chapter.title }}</h3>    
+    {% if chapter_content %}    
+        <div class="container mt-5" style="max-width: 1200px;">
+            <div class="card shadow-lg p-4">
+                <div class="card-body">
+                    {% if chapter_content.text %}
+                        <div class="row">
+                            <div class="card text-card shadow-sm p-3">
+                                <div class="card-body">
+                                    <pre class="content-text">{{ chapter_content.text }}</pre>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                {% endif %}
-    
-                {% if chapter_content.video %}
-                    <div class="row mt-3">
-                        <div class="card shadow-sm p-3">
-                            <div class="card-body">
-                                <video class="w-100" controls>
-                                    <source src="{% url 'courses:video-stream' chapter_content.id %}" type="video/mp4">
-                                </video>
+                    {% endif %}
+        
+                    {% if chapter_content.video %}
+                        <div class="row mt-3">
+                            <div class="card shadow-sm p-3">
+                                <div class="card-body">
+                                    <video class="w-100" controls>
+                                        <source src="{% url 'courses:video-stream' chapter_content.id %}" type="video/mp4">
+                                    </video>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                {% endif %}
-
+                    {% endif %}
     
-                {% if chapter_content.files %}
-                    <div class="row mt-4">
-                        <div class="card shadow-sm p-3">
-                            <div class="card-body">
-                                <h4>Документ для изучения:</h4>
-                                <a href="{{ chapter_content.files.url }}" class="btn btn-primary mt-2" target="_blank">Скачать PDF</a>
+        
+                    {% if chapter_content.files %}
+                        <div class="row mt-4">
+                            <div class="card shadow-sm p-3">
+                                <div class="card-body">
+                                    <h4>Документ для изучения:</h4>
+                                    <a href="{{ chapter_content.files.url }}" class="btn btn-primary mt-2" target="_blank">Скачать PDF</a>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                {% endif %}
-            
+                    {% endif %}
+                
+                </div>
             </div>
         </div>
-    </div>
-{% endif %}
-    
-<h3 class="d-flex flex-wrap justify-content-center mt-3">Тесты:</h3>
-<div class="container mt-3 mb-xl-5" style="max-width: 800px;">
-    <div class="row d-flex flex-wrap justify-content-start">
-        {% for index, task in tasks|enumerate %}
-            
-        <div class="col-auto p-1">
-            <a href="{% url 'courses:task' chapter.course_id chapter.id task.id %}" class="card test-card        
-                {% if task.is_completed %}completed-test-card{% else %}not-completed-test-card{% endif %}">
-                <div class="card-body p-2 text-center">
-                    <h6 class="card-title mb-0">{{ index }}</h6>
-                </div>
-            </a>
+    {% endif %}
+        
+    <h3 class="d-flex flex-wrap justify-content-center mt-3">Тесты:</h3>
+    <div class="container mt-3 mb-xl-5" style="max-width: 800px;">
+        <div class="row d-flex flex-wrap justify-content-start">
+            {% for index, task in tasks|enumerate %}
+                
+            <div class="col-auto p-1">
+                <a href="{% url 'courses:task' chapter.course_id chapter.id task.id %}" class="test-card 
+                    {% if task.is_completed %}
+                        completed-test-card
+                    {% else %}
+                        not-completed-test-card
+                    {% endif %}">
+                
+                    <div class="card-body p-2 text-center">
+                        <h6 class="card-title mb-0">{{ index }}</h6>
+                    </div>
+                </a>
+            </div>
+                
+            {% empty %}
+                <p class="mt-3">Главы курса не найдены.</p>
+            {% endfor %}
+        
         </div>
-            
-        {% empty %}
-            <p class="mt-3">Главы курса не найдены.</p>
-        {% endfor %}
-    
     </div>
-</div>
-
-<div class="d-flex justify-content-center mt-5">
-    <a href="{% url 'courses:course' chapter.course_id %}" class="btn btn-secondary">← Вернуться обратно</a>
-</div> 
-
-<style>
-    /* Стиль для текста контента */
-    .content-text {
-        font-size: 1.3rem;
-        font-weight: 500;
-        color: black;
-        text-align: start;
-        margin-top: 1rem;
-        line-height: 1.6;
-        font-family: "Arial", Times, serif;
-        white-space: pre-wrap;
-        word-wrap: break-word;
-        overflow: hidden;
-    }
-
-
-    /* Стиль для карточки с текстом */
-    .text-card {
-        display: inline-block;
-        width: 100%;
-        padding: 15px;
-        font-size: 16px;
-        border-radius: 10px;
-        background-color: #f8f9fa;
-    }
-
-    /* Стиль для формы карточки */
-    .test-card {
-        display: inline-block;
-        padding: 10px 20px;
-        font-size: 18px;
-        border-radius: 10px;
-        transition: border-color 0.3s, color 0.3s;
-        text-decoration: none;
-    }
-
-    /* Стиль для карточке, где тест был пройден */
-    .completed-test-card {
-        background-color: #c3e6cb ;
-        border: 2px solid transparent;
-        color:  #212529;
-    }
-
-    /* Эффект при наведении на карточку с пройденным тестом */
-    .completed-test-card:hover {
-        border-color: #81c784;
-        color: #212529;
-    }
-
-    /* Стиль для карточки с непройденным тестом */
-    .not-completed-test-card {
-        background-color: #fff;
-        border: 2px solid #ddd;
-        color: #333;
-    }
-
-    /* Эффект при наведении на карточку с непройденным тестом */
-    .not-completed-test-card:hover {
-        border-color: #66bb6a;
-        color: #333;
-    }
-</style>
-
-
+    
+    <div class="d-flex justify-content-center mt-5">
+        <a href="{% url 'courses:course' chapter.course_id %}" class="btn btn-secondary">← Вернуться обратно</a>
+    </div>
 {% endblock %}

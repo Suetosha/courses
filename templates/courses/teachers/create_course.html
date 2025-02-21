@@ -45,7 +45,7 @@
     document.addEventListener("DOMContentLoaded", function () {
         let addChapterBtn = document.getElementById("add-chapter");
         let chaptersContainer = document.getElementById("chapters");
-        let totalForms = document.querySelector("[name='chapter_set-TOTAL_FORMS']");  // Исправленный селектор
+        let totalForms = document.querySelector("[name='chapter_set-TOTAL_FORMS']");
 
         addChapterBtn.addEventListener("click", function () {
             let formCount = parseInt(totalForms.value);
@@ -69,7 +69,7 @@
             newForm.appendChild(removeBtn);
 
             chaptersContainer.appendChild(newForm);
-            totalForms.value = formCount + 1; // Увеличиваем счетчик форм
+            totalForms.value = formCount + 1;
         });
 
         // Удаление глав

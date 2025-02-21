@@ -1,7 +1,6 @@
 from django.db import models
 
 
-
 # Модель тестов. Один тест может содержать несколько заданий
 class Test(models.Model):
     chapter = models.OneToOneField("courses.Chapter", on_delete=models.CASCADE)

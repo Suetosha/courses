@@ -7,6 +7,7 @@ from courses_apps.users.views import UserLoginView, UserProfileView
 app_name = 'users'
 
 urlpatterns = [
+    #                   Пользователи
     path('login/', UserLoginView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(next_page='/'), name='logout'),
     path('profile/<int:pk>', UserProfileView.as_view(), name='profile'),

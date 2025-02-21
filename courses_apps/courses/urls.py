@@ -3,10 +3,7 @@ from courses_apps.courses.views import *
 
 app_name = 'courses'
 
-
-
 urlpatterns = [
-
 
     #                 Для студентов
 

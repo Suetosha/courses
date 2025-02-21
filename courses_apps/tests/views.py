@@ -61,7 +61,8 @@ class TaskCreateView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, Succe
 
             # Проходим по всем ответам и сохраняем их
             for answer in answers:
-                answer.task = self.object  # Привязываем ответ к вопросу
+                # Привязываем ответ к вопросу
+                answer.task = self.object
                 answer.save()
 
         return super().form_valid(form)
@@ -76,6 +77,7 @@ class TaskUpdateView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, Succe
     success_url = reverse_lazy("tests:tasks_list")
     success_message = "Данные обновлены"
 
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
@@ -88,6 +90,7 @@ class TaskUpdateView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, Succe
         context['answer_formset'] = answer_formset
         context['form'] = task_form
         return context
+
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()  # Получаем задание
@@ -125,28 +128,28 @@ class TestListView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, ListVie
     context_object_name = 'courses'
 
     def get_queryset(self):
-        # Предзагрузка задач в тестах
+        # Получение задач в тестах
         tasks_prefetch = Prefetch(
             "tasks",
             queryset=Task.objects.all(),
             to_attr="prefetched_tasks"
         )
 
-        # Предзагрузка тестов и их заданий
+        # Получение тестов и их заданий
         tests_prefetch = Prefetch(
             "test",
             queryset=Test.objects.prefetch_related(tasks_prefetch),
             to_attr="prefetched_test"
         )
 
-        # Предзагрузка глав и их тестов
+        # Получение глав и их тестов
         chapters_prefetch = Prefetch(
             "chapter_set",
             queryset=Chapter.objects.prefetch_related(tests_prefetch),
             to_attr="prefetched_chapters"
         )
 
-        # Получаем основной queryset с предзагруженными главами, тестами и заданиями
+        # Получаем основной queryset с полученными главами, тестами и заданиями
         queryset = Course.objects.prefetch_related(chapters_prefetch)
 
         return queryset
@@ -166,7 +169,7 @@ class TestCreateView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, Succe
         test = form.save()
 
         tasks = form.cleaned_data['tasks']
-        # Используем set для установки связи с задачами
+        # Формируем связь теста с задачами
         test.tasks.set(tasks)
 
         return super().form_valid(form)

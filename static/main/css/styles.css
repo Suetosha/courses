@@ -1,0 +1,124 @@
+/* Стиль для текста контента */
+.content-text {
+    font-size: 1.3rem;
+    font-weight: 500;
+    color: black;
+    text-align: start;
+    margin-top: 1rem;
+    line-height: 1.6;
+    font-family: "Arial", Times, serif;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow: hidden;
+}
+
+
+/* Стиль для карточки с текстом */
+.text-card {
+    display: inline-block;
+    width: 100%;
+    padding: 15px;
+    font-size: 16px;
+    border-radius: 10px;
+    background-color: #f8f9fa;
+}
+
+/* Стиль для формы карточки */
+.test-card {
+    display: inline-block;
+    padding: 10px 20px;
+    font-size: 18px;
+    border-radius: 10px;
+    transition: border-color 0.3s, color 0.3s;
+}
+
+/* Стиль для карточке, где тест был пройден */
+.completed-test-card {
+    background-color: #c3e6cb ;
+    border: 2px solid transparent;
+    color:  #212529;
+}
+
+/* Эффект при наведении на карточку с пройденным тестом */
+.completed-test-card:hover {
+    border-color: #81c784;
+    color: #212529;
+}
+
+/* Стиль для карточки с непройденным тестом */
+.not-completed-test-card {
+    background-color: #fff;
+    border: 2px solid #ddd;
+    color: #333;
+}
+
+/* Эффект при наведении на карточку с непройденным тестом */
+.not-completed-test-card:hover {
+    border-color: #66bb6a;
+    color: #333;
+}
+
+/* Стиль для завершенной карточки главы */
+.completed-chapter-card {
+    width: 18rem;
+    border-radius: 15px;
+    background-color: #c3e6cb;
+    color: #212529;
+}
+
+/* Стиль для незавершенной карточки главы */
+.not-completed-chapter-card {
+    width: 18rem;
+    border-radius: 15px;
+}
+
+/* Стиль для описания курса */
+.course-description {
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: black;
+    text-align: start;
+    margin-top: 1rem;
+    line-height: 1.6;
+    font-family: "Times New Roman", Times, serif;
+}
+
+/* Стиль для вопроса */
+.question {
+    font-size: 1.3rem;
+    font-weight: 500;
+    color: black;
+    text-align: start;
+    margin-top: 1rem;
+    line-height: 1.6;
+    font-family: "Times New Roman", Times, serif;
+    white-space: pre-line;
+    word-wrap: break-word;
+    overflow: hidden;
+}
+
+
+/* Стиль для компилятора */
+.custom-textarea {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 1.2rem;
+    padding: 12px;
+    width: 100%;
+    white-space: pre-wrap;
+    background-color: #f4f4f4;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+/* Общий стиль карточек для тестов */
+.custom_card {
+    width: 50px;
+    height: 50px;
+    font-size: 14px;
+    border-radius: 10px;
+    transition: border-color 0.3s, color 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+

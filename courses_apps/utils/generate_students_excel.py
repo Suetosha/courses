@@ -1,13 +1,11 @@
-import string
-
 import openpyxl
 from django.http import HttpResponse
-import random
 from django.contrib.auth.hashers import make_password
 from courses_apps.users.models import Group, User
 from courses_apps.utils.generate_password import generate_password
 
 
+# Функция для создания эксель файла по студентам из определенной группы
 def generate_excel(group_number, year):
     group = Group.objects.get(number=group_number, year=year)
     students = User.objects.filter(groups=group)
@@ -19,7 +17,7 @@ def generate_excel(group_number, year):
 
     for student in students:
         for group in student.groups.all():
-            # Генерация временного пароля для экспорта
+            # Генерация временного пароля
             temp_password = generate_password()
 
             # Сохраняем новый пароль в базе данных

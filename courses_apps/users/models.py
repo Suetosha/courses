@@ -28,7 +28,7 @@ class Group(models.Model):
     year = models.IntegerField(null=False)
 
     def __str__(self):
-        return f'Группа: {self.number}, год: {self.year}'
+        return f'Группа: {self.number} ({self.year})'
 
 
 # Модель подписок

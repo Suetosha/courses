@@ -8,6 +8,9 @@ from courses_apps.utils.generate_username import generate_username
 
 User = get_user_model()
 
+
+
+# Функция для добавления студентов из эксель файла
 def import_students_from_excel(excel_file):
     wb = openpyxl.load_workbook(excel_file)
     sheet = wb.active
