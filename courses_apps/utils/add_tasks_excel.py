@@ -21,11 +21,20 @@ def import_tasks_from_excel(file):
                     is_multiple_choice = bool(row[2]) if row[2] else False
                     is_compiler = bool(row[3]) if row[3] else False
                     correct_answers = str(row[4]).split() if row[4] else []
+                    answers = list(filter(lambda r: r is not None, row[5:]))
+
+                    if not any([is_text_input, is_multiple_choice, is_compiler]):
+                        raise ValueError(
+                            "Хотя бы один из параметров (is_text_input, is_multiple_choice, is_compiler) должен быть True")
 
                     if is_text_input or is_compiler:
+
+                        if len(answers) > 1:
+                            raise ValueError("При is_text_input или is_compiler должен быть только один ответ")
+
                         if len(correct_answers) > 1:
                             raise ValueError(
-                                f"Ошибка в строке {row_index}: при is_text_input или is_compiler должен быть только один правильный ответ.")
+                                f"При is_text_input или is_compiler должен быть только один правильный ответ.")
 
                     # Создаём задание
                     task = Task.objects.create(
@@ -37,13 +46,15 @@ def import_tasks_from_excel(file):
 
                     # Добавляем ответы
                     has_correct_answer = False
-                    for idx, answer_text in enumerate(row[5:], start=1):
+                    for idx, answer_text in enumerate(answers, start=1):
 
                         # Если поле ответа не пустое
                         if answer_text:
                             is_correct = str(idx) in correct_answers
                             if is_correct:
                                 has_correct_answer = True
+
+
                             Answer.objects.create(
                                 task=task,
                                 text=str(answer_text).strip(),
@@ -51,10 +62,13 @@ def import_tasks_from_excel(file):
                             )
 
                     if not has_correct_answer:
-                        raise ValueError(f"Ошибка в строке {row_index}: должен быть хотя бы один правильный ответ.")
+                        raise ValueError(f"Должен быть хотя бы один правильный ответ.")
 
                 except ValueError as e:
                     raise ValueError(f"Ошибка в строке {row_index}: {e}")
 
+                except IndexError as e:
+                    raise IndexError("Вы отправили неподходящий формат для добавления тестов")
+
     except Exception as e:
-        raise Exception(f"Ошибка обработки файла: {str(e)}")
+        raise Exception(f"{str(e)}")

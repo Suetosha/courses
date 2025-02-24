@@ -49,7 +49,7 @@ class TaskListView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, ListVie
                 import_tasks_from_excel(file_path)
                 messages.success(request, "Задания успешно загружены.")
             except Exception as e:
-                messages.error(request, f"Ошибка при загрузке: {str(e)}")
+                messages.error(request, f"{str(e)}")
 
             # Удаляем временный файл после обработки
             if os.path.exists(file_path):
