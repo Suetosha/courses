@@ -11,7 +11,7 @@ from courses_apps.users.models import *
 from courses_apps.users.forms import *
 from courses_apps.users.forms import UserLoginForm, UserProfileForm
 from courses_apps.utils.add_students_excel import import_students_from_excel
-from courses_apps.utils.generate_students_excel import generate_excel
+from courses_apps.utils.generate_students_excel import generate_students_excel
 from courses_apps.utils.mixins import TitleMixin, RedirectStudentMixin
 
 #                             Пользователи
@@ -122,7 +122,7 @@ class StudentListView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, List
             if not students:
                 messages.error(request,"В данной группе нет студентов")
             elif group:
-                return generate_excel(group.number, group.year)
+                return generate_students_excel(group.number, group.year)
             else:
                 messages.error(request,"Группа не выбрана")
 

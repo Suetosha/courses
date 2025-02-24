@@ -1,19 +1,25 @@
+import os
+
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
+from django.core.files.storage import FileSystemStorage
 from django.db.models import Prefetch
+from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
 from django.views.generic import ListView, UpdateView, DeleteView, CreateView
 
 from courses_apps.courses.forms import *
 from courses_apps.tests.forms import *
 from courses_apps.tests.models import *
+from courses_apps.utils.add_tasks_excel import import_tasks_from_excel
 
 from courses_apps.utils.mixins import TitleMixin, RedirectStudentMixin
 
 
 #                                   Задания
 
-# Просмотр заданий
+# Просмотр заданий + функционал добавления заданий через эксель
 class TaskListView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, ListView):
     title = "Просмотр заданий"
     template_name = "tests/tasks_list.html"
@@ -22,6 +28,37 @@ class TaskListView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, ListVie
 
     def get_queryset(self):
         return Task.objects.prefetch_related("answer_set")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form'] = ImportTasksForm()
+        return context
+
+    def post(self, request, *args, **kwargs):
+        form = ImportTasksForm(request.POST, request.FILES)
+
+        if form.is_valid():
+            excel_file = request.FILES['excel_file']
+
+            # Сохраняем файл временно
+            fs = FileSystemStorage()
+            filename = fs.save(excel_file.name, excel_file)
+            file_path = fs.path(filename)
+
+            try:
+                import_tasks_from_excel(file_path)
+                messages.success(request, "Задания успешно загружены.")
+            except Exception as e:
+                messages.error(request, f"Ошибка при загрузке: {str(e)}")
+
+            # Удаляем временный файл после обработки
+            if os.path.exists(file_path):
+                os.remove(file_path)
+
+            return redirect('tests:tasks_list')
+
+        return self.get(request, *args, **kwargs)
+
 
 
 # Создание задания

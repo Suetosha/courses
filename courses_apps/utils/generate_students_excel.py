@@ -6,7 +6,7 @@ from courses_apps.utils.generate_password import generate_password
 
 
 # Функция для создания эксель файла по студентам из определенной группы
-def generate_excel(group_number, year):
+def generate_students_excel(group_number, year):
     group = Group.objects.get(number=group_number, year=year)
     students = User.objects.filter(groups=group)
 

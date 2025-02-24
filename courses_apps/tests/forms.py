@@ -5,6 +5,7 @@ from courses_apps.tests.models import *
 from django.forms import inlineformset_factory
 
 
+# Форма для создания задания
 class CreateTaskForm(forms.ModelForm):
     class Meta:
         model = Task
@@ -27,6 +28,7 @@ class CreateTaskForm(forms.ModelForm):
     )
 
 
+# Форма для ответа
 class AnswerTestForm(forms.ModelForm):
     class Meta:
         model = Answer
@@ -87,3 +89,7 @@ class CreateTestForm(forms.ModelForm):
         required=False,
         label="Задания"
     )
+
+# Форма для загрузки заданий через эксель форму
+class ImportTasksForm(forms.Form):
+    excel_file = forms.FileField()
