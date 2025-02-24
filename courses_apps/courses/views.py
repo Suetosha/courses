@@ -157,10 +157,12 @@ class TaskTemplateView(LoginRequiredMixin, RedirectTeacherMixin, TitleMixin, Tem
     title = "Задание"
     form_class = TaskAnswerForm
 
-    def get(self, request, *args, **kwargs):
-        context = super().get_context_data(*args, **kwargs)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
         course_id, chapter_id, task_id = kwargs["course_id"], kwargs["chapter_id"], kwargs["task_id"]
-        user = request.user
+
+        # Получение пользователя
+        user = self.request.user
 
         # Получение прогресса по выполненным заданиям
         task_progress = TaskProgress.objects.filter(
@@ -174,39 +176,15 @@ class TaskTemplateView(LoginRequiredMixin, RedirectTeacherMixin, TitleMixin, Tem
                             .annotate(is_completed=Exists(task_progress.filter(test_task__task=OuterRef("id")))))
 
         # Получение текущего задания
-        current_task = tasks_in_chapter.get(id=task_id)
+        current_task = tasks_in_chapter.filter(id=task_id).first()
 
         # Получение всех и правильных вариантов ответа
-        answers = Answer.objects.filter(task=current_task)
-        correct_answers = answers.filter(is_correct=True)
-
-        if current_task.is_completed:
-
-            # Если задание выполнено, заполняем форму ответами
-            if current_task.is_multiple_choice:
-                selected_answers = [str(answer.id) for answer in correct_answers]
-                context["form"] = TaskAnswerForm(task=current_task, answers=answers,
-                                                 initial={"answers": selected_answers})
-
-            else:
-                context["form"] = TaskAnswerForm(task=current_task,
-                                                 answers=answers,
-                                                 initial={"answers": correct_answers.first().text})
-
-                context["form"]["answers"].label = 'Правильный ответ'
-
-                # Делаем поля формы недоступными для редактирования
-            for field in context["form"].fields.values():
-                field.widget.attrs["readonly"] = True
-                field.widget.attrs["disabled"] = True
-
-        else:
-            # Если задание не выполнено, создаем пустую форму
-            context["form"] = TaskAnswerForm(task=current_task, answers=answers)
+        answers = Answer.objects.filter(task=current_task) if current_task else None
+        correct_answers = answers.filter(is_correct=True) if answers else None
 
         context.update({
             "current_task": current_task,
-            "is_task_completed": current_task.is_completed,
+            "is_task_completed": current_task.is_completed if current_task else False,
             "tasks_in_chapter": tasks_in_chapter,
             "answers": answers,
             "course_id": course_id,
@@ -214,6 +192,36 @@ class TaskTemplateView(LoginRequiredMixin, RedirectTeacherMixin, TitleMixin, Tem
             "task_id": task_id,
         })
 
+        if "form" in kwargs:
+            context["form"] = kwargs["form"]
+
+        return context
+
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+
+        # Если задание выполнено, заполняем форму ответами
+        if context["current_task"] and context["current_task"].is_completed:
+            current_task = context["current_task"]
+            answers = context["answers"]
+            correct_answers = answers.filter(is_correct=True) if answers else None
+
+            if current_task.is_multiple_choice:
+                selected_answers = [str(answer.id) for answer in correct_answers] if correct_answers else []
+                form = TaskAnswerForm(task=current_task, answers=answers, initial={"answers": selected_answers})
+            else:
+                form = TaskAnswerForm(task=current_task, answers=answers,
+                                      initial={"answers": correct_answers.first().text if correct_answers else ""})
+                form["answers"].label = "Правильный ответ"
+
+            # Делаем поля формы недоступными для редактирования
+            for field in form.fields.values():
+                field.widget.attrs["readonly"] = True
+                field.widget.attrs["disabled"] = True
+        else:
+            form = TaskAnswerForm(task=context["current_task"], answers=context["answers"])
+
+        context["form"] = form
         return self.render_to_response(context)
 
     def post(self, request, **kwargs):
@@ -222,52 +230,76 @@ class TaskTemplateView(LoginRequiredMixin, RedirectTeacherMixin, TitleMixin, Tem
         form = self.form_class(task, answers, data=request.POST)
 
         if form.is_valid():
+            # Правильные ответы или ответ
             answers = Answer.objects.filter(task=task, is_correct=True)
-            form_answers = form.cleaned_data["answers"]
 
+            # Ответ студента
+            user_answers = form.cleaned_data["answers"]
+
+            # Если задание с компилятором
             if task.is_compiler:
-                form_answers = run_code(form_answers)
+                code = form.cleaned_data["compiler"]
+                user_answers = run_code(code)
+                correct_answer = answers.first().text
 
-            user_answer = form_answers if type(form_answers) == list else [form_answers]
-            correct_answer = [str(a.id) for a in answers] if task.is_multiple_choice else [a.text for a in answers]
+            # Если задания с множественным выбором, то лучше сравнивать с помощью айди
+            elif task.is_multiple_choice:
+                correct_answer = [str(a.id) for a in answers]
+                correct_answer = correct_answer[0] if len(correct_answer) == 1 else correct_answer
 
-            if user_answer == correct_answer:
+            # Если задание с полем ввода
+            else:
+                correct_answer = answers.first().text
 
-                # Получаем главу
-                chapter = Chapter.objects.get(id=kwargs["chapter_id"])
+            is_correct = (user_answers == correct_answer)
 
-                # Получаем прогресс главы
-                chapter_progress, _ = ChapterProgress.objects.get_or_create(
-                    subscription__user=request.user,
-                    subscription__course_id=kwargs["course_id"],
-                    chapter=chapter
-                )
+            if is_correct:
+                # Обозначаем, что глава пройдена
+                self._update_chapter_progress(request, **kwargs)
 
-                # Добавляем выполненное задание в TestProgress
-                task_progress = TaskProgress(
-                    chapter_progress=chapter_progress,
-                    test_task=TestTask.objects.get(task=task,
-                                                   test=Test.objects.get(chapter=chapter)))
-
-                task_progress.save()
-
-                # Подсчет общего количества заданий в главе
-                total_tasks = Test.objects.get(chapter=chapter).tasks.count()
-
-                # Получение выполненных тестов по главе
-                completed_tasks = chapter_progress.taskprogress_set.count()
-
-                # Если все задания по данной главе пройдены, то она считается пройденной
-                if total_tasks == completed_tasks:
-                    chapter_progress.is_completed = True
-                    chapter_progress.save()
+                form = self.form_class(task, answers, initial={
+                    "compiler": code if task.is_compiler else None,
+                    "answers": correct_answer
+                })
 
                 messages.success(request, "Правильный ответ!")
 
             else:
                 messages.error(request, 'Неправильный ответ')
 
-            return redirect("courses:task", kwargs["course_id"], kwargs["chapter_id"], kwargs["task_id"])
+            context = self.get_context_data(form=form, **kwargs)
+            return self.render_to_response(context)
+
+
+    @staticmethod
+    def _update_chapter_progress(request, **kwargs):
+        task = Task.objects.get(id=kwargs["task_id"])
+        chapter = Chapter.objects.get(id=kwargs["chapter_id"])
+
+        # Получаем прогресс главы
+        chapter_progress, _ = ChapterProgress.objects.get_or_create(
+            subscription__user=request.user,
+            subscription__course_id=kwargs['course_id'],
+            chapter=chapter
+        )
+
+        # Добавляем выполненное задание в TaskProgress
+        task_progress = TaskProgress(
+            chapter_progress=chapter_progress,
+            test_task=TestTask.objects.get(task=task, test=Test.objects.get(chapter=chapter))
+        )
+        task_progress.save()
+
+        # Подсчет общего количества заданий в главе
+        total_tasks = Test.objects.get(chapter=chapter).tasks.count()
+
+        # Получение выполненных тестов по главе
+        completed_tasks = chapter_progress.taskprogress_set.count()
+
+        # Если все задания по данной главе пройдены, то она считается пройденной
+        if total_tasks == completed_tasks:
+            chapter_progress.is_completed = True
+            chapter_progress.save()
 
 
 #                              Курсы - Функционал для преподавателя
@@ -437,3 +469,21 @@ class ChapterUpdateView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, Su
         context['content_form'] = content_form
 
         return self.render_to_response(context)
+
+
+#                                Компилятор
+
+class CompilerFormView(LoginRequiredMixin, TitleMixin, RedirectTeacherMixin, FormView):
+    title = 'Компилятор'
+    template_name = 'courses/students/compiler.html'
+    form_class = CompilerForm
+
+    def form_valid(self, form):
+        context = self.get_context_data()
+        form = context['form']
+        if form.is_valid():
+            code = form.cleaned_data["compiler"]
+            output = run_code(code)
+            return self.render_to_response(self.get_context_data(
+                form=self.form_class(initial={"compiler": code, "answer": output})
+            ))

@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+    
+<div class="container mt-5" style="max-width: 800px;">    
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="form-group">
+                    {{ form.compiler.label_tag }}
+                    {{ form.compiler }}
+                </div>
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn btn-primary">Запустить</button>
+                </div>    
+                <div class="form-group">
+                    {{ form.answer.label_tag }}
+                    {{ form.answer }}
+                </div>
+            </form>
+            
+            {% if code %}
+                <h3>Введенный код:</h3>
+                <pre>{{ code }}</pre>
+            {% endif %}
+        </div>
+    </div>
+</div>
+    
+{% endblock %}

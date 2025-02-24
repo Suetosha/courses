@@ -12,6 +12,7 @@ urlpatterns = [
     path("video/<int:content_id>/", VideoStreamView.as_view(), name="video-stream"),
     path("course/<int:course_id>/chapter/<int:chapter_id>", ChapterTemplateView.as_view(), name='chapter'),
     path("course/<int:course_id>/chapter/<chapter_id>/task/<int:task_id>", TaskTemplateView.as_view(), name='task'),
+    path("compiler/", CompilerFormView.as_view(), name='compiler'),
 
     #               Для преподавателей
 

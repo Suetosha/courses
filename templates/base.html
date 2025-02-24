@@ -27,36 +27,39 @@
         <div class="container d-flex flex-wrap mt-3">
         
         {% if request.user.role == "student" %}
-          <ul class="nav me-auto">
-              <li class="nav-item"><a href="{% url 'courses:home' %}" class="nav-link link-dark px-2 active">Курсы</a></li>
-          </ul>
+            
+            <ul class="nav me-auto">
+              <li class="nav-item"><a href="{% url 'courses:home' %}" class="nav-link link-dark px-2 active mx-3">Курсы</a></li>
+              <li class="nav-item"><a href="{% url 'courses:compiler' %}" class="nav-link link-dark px-2 active mx-3">Компилятор</a></li>
+            </ul>  
+            
         {% endif %}
         
         {% if request.user.role == "teacher" or request.user.is_superuser %}
+                        
+            <ul class="nav me-auto">
+              <li class="nav-item"><a href="{% url 'courses:courses_list' %}" class="nav-link link-dark px-2 active">Курсы</a></li>
+            </ul>
             
-              <ul class="nav me-auto">
-                  <li class="nav-item"><a href="{% url 'courses:courses_list' %}" class="nav-link link-dark px-2 active">Курсы</a></li>
-              </ul>
+            <ul class="nav me-auto">
+              <li class="nav-item"><a href="{% url 'tests:tasks_list' %}" class="nav-link link-dark px-2 active">Задания</a></li>
+            </ul>
             
-              <ul class="nav me-auto">
-                  <li class="nav-item"><a href="{% url 'tests:tasks_list' %}" class="nav-link link-dark px-2 active">Задания</a></li>
-              </ul>
+            <ul class="nav me-auto">
+              <li class="nav-item"><a href="{% url 'tests:tests_list' %}" class="nav-link link-dark px-2 active">Тесты</a></li>
+            </ul>
             
-              <ul class="nav me-auto">
-                  <li class="nav-item"><a href="{% url 'tests:tests_list' %}" class="nav-link link-dark px-2 active">Тесты</a></li>
-              </ul>
+            <ul class="nav me-auto">
+              <li class="nav-item"><a href="{% url 'users:subscriptions_list' %}" class="nav-link link-dark px-2 active">Подписки на курс</a></li>
+            </ul>
             
-              <ul class="nav me-auto">
-                  <li class="nav-item"><a href="{% url 'users:subscriptions_list' %}" class="nav-link link-dark px-2 active">Подписки на курс</a></li>
-              </ul>
+            <ul class="nav me-auto">
+              <li class="nav-item"><a href="{% url 'users:students_list' %}" class="nav-link link-dark px-2 active">Студенты</a></li>
+            </ul>  
             
-              <ul class="nav me-auto">
-                  <li class="nav-item"><a href="{% url 'users:students_list' %}" class="nav-link link-dark px-2 active">Студенты</a></li>
-              </ul>  
-            
-              <ul class="nav me-auto">
-                <li class="nav-item"><a href="{% url 'users:teachers_list' %}" class="nav-link link-dark px-2 active">Преподаватели</a></li>
-              </ul>  
+            <ul class="nav me-auto">
+            <li class="nav-item"><a href="{% url 'users:teachers_list' %}" class="nav-link link-dark px-2 active">Преподаватели</a></li>
+            </ul>  
             
         {% endif %}  
         

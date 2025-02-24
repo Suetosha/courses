@@ -28,20 +28,14 @@ class TaskAnswerForm(forms.Form):
 
         elif task.is_compiler:
             # Если нужно большое поле для кода
-            self.fields["answers"] = forms.CharField(
-                label='Введите код:',
-                widget=forms.Textarea(attrs={
-                    'class': 'form-control custom-textarea',
-                    'placeholder': 'Введите код',
-                    'required': 'Введите код',
-                    'rows': 10,
-                    'cols': 50
-                })
-            )
+            compiler_form = CompilerForm()
+            self.fields["compiler"] = compiler_form.fields["compiler"]
+            self.fields["answers"] = compiler_form.fields["answer"]
+
 
         elif task.is_multiple_choice:
-
             choices = [(answer.id, answer.text) for answer in answers]
+
             correct_count = answers.filter(is_correct=True).count()
 
             if correct_count == 1:
@@ -58,6 +52,32 @@ class TaskAnswerForm(forms.Form):
                     widget=forms.CheckboxSelectMultiple,
                     label="Выберите один или несколько ответов",
                 )
+
+
+# Форма для компилятора
+class CompilerForm(forms.Form):
+    compiler = forms.CharField(
+        label='Введите код:',
+        widget=forms.Textarea(attrs={
+            'class': 'form-control custom-textarea',
+            'placeholder': 'Введите код',
+            'rows': 10,
+            'cols': 50
+        }),
+        required=True,
+        error_messages={'required': 'Поле не может быть пустым!'}
+    )
+
+    answer = forms.CharField(
+        label='Ответ',
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'readonly': True,
+            'rows': 10,
+            'cols': 50
+        })
+    )
 
 
 # Форма для создания курса
