@@ -15,14 +15,12 @@
                 <div class="card border-dark mt-3 w-100"
                     {% if course.chapter_progress == course.total_chapters %}
                         style="background-color: #c3e6cb ; color: #212529;" 
-                    {% endif %}
-                    style="max-width: 18rem;">
+                    {% endif %}>
                     
                     <div class="card-header">{{ course.category.name }}</div>
                     <div class="card-body">
                         <h5 class="card-title">{{ course.title }}</h5>
                         <h6 class="card-text">
-                            Выполнено: {{ course.chapter_progress }} / {{ course.total_chapters }} глав
                             Выполнено: {{ course.chapter_progress }} / {{ course.total_chapters }} глав
                         </h6>
                     </div>
