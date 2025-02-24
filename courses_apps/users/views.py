@@ -55,12 +55,16 @@ class UserProfileView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, Updat
 
         for course in courses:
 
-            course.total_chapters = Chapter.objects.filter(course=course).count()
+            chapters_count = Chapter.objects.filter(course=course).count()
 
-            course.chapter_progress = ChapterProgress.objects.filter(
+            chapter_progress = ChapterProgress.objects.filter(
                 subscription__course=course,
-                is_completed=True
+                is_completed=True,
+                subscription__user=self.request.user
             ).count()
+
+            course.total_chapters = chapters_count
+            course.chapter_progress = chapter_progress
 
         context['courses'] = courses
         return context
