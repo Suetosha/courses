@@ -5,8 +5,8 @@ import requests
 def run_code(code):
     try:
         response = requests.post("https://emkc.org/api/v2/piston/execute", json={
-            "language": "python",
-            "version": "3.10.0",
+            "language": "c++",
+            "version": "10.2.0",
             "files": [{"content": code}]
         })
 
@@ -14,4 +14,3 @@ def run_code(code):
         return output
     except Exception as e:
         return {"error": str(e)}
-
