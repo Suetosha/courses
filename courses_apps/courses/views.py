@@ -75,21 +75,17 @@ class CourseTemplateView(LoginRequiredMixin, RedirectTeacherMixin, SubscriptionR
         # Определяем доступность глав
         for i, chapter in enumerate(chapters):
             if i == 0:
-                chapter.is_accessible = True  # Первая глава всегда доступна
+                # Первая глава будет доступна всегда
+                chapter.is_accessible = True
             else:
                 prev_chapter = chapters[i - 1]
-                prev_test = Test.objects.filter(chapter=prev_chapter).first()
+                prev_chapter_progress = ChapterProgress.objects.filter(
+                    subscription=subscription,
+                    chapter=prev_chapter
+                ).first()
 
-                if prev_test and subscription:
-                    prev_completed_count = ChapterProgress.objects.filter(
-                        subscription=subscription,
-                        chapter=prev_chapter,
-                        is_completed=True
-                    ).count()
-
-                    chapter.is_accessible = prev_completed_count > 0
-                else:
-                    chapter.is_accessible = False
+                # Если предыдущая глава завершена, текущая становится доступной
+                chapter.is_accessible = prev_chapter_progress.is_completed if prev_chapter_progress else False
 
         context['course'] = course
         context['chapters'] = chapters
@@ -129,6 +125,14 @@ class ChapterTemplateView(LoginRequiredMixin, RedirectTeacherMixin, ChapterAcces
         # Создаем или получаем прогресс по главе
         chapter_progress, _ = ChapterProgress.objects.get_or_create(
             chapter=chapter, subscription=subscription)
+
+        # Проверка на то, есть ли по данной главе тесты
+        has_tests = Task.objects.filter(tests__chapter_id=chapter_id).exists()
+
+        if not has_tests:
+            chapter_progress.is_completed = True
+            chapter_progress.save()
+
 
         # Добавляем к каждому заданию флаг is_completed=True, если он есть в TaskProgress
         tasks_in_chapter = Task.objects.filter(
