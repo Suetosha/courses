@@ -69,9 +69,12 @@ AnswerFormUpdateSet = inlineformset_factory(
     extra=0,
 )
 
-
 # Форма создания теста
 class CreateTestForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super(CreateTestForm, self).__init__(*args, **kwargs)
+        self.fields['chapter'].label_from_instance = lambda chapter: f'{chapter.title} - {chapter.course.title}'
+
     class Meta:
         model = Test
         fields = ["chapter", "tasks"]
@@ -89,6 +92,7 @@ class CreateTestForm(forms.ModelForm):
         required=False,
         label="Задания"
     )
+
 
 # Форма для загрузки заданий через эксель форму
 class ImportTasksForm(forms.Form):
