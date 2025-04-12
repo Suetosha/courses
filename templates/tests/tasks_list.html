@@ -38,7 +38,7 @@
                         <td>
                             <ul>
                                 {% for answer in task.answer_set.all %}
-                                    <li>{{ answer.text }} {% if answer.is_correct %} ✅ {% else %} ❌ {% endif %}</li>
+                                    <li>{{ answer.text }} {% if answer.is_correct %} ✅ {% else %} ⨉ {% endif %}</li>
                                 {% endfor %}
                             </ul>
                         </td>
