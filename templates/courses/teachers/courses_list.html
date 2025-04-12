@@ -30,7 +30,9 @@
                                 <ul class="mb-0">
                                     <li>
                                         {{ category.name }}
-                                        <a href="{% url 'courses:delete_category' category.id %}" class="text-danger text-decoration-none">❌</a>
+                                        <a href="{% url 'courses:delete_category' category.id %}" 
+                                           class="text-black text-decoration-none" >⨉
+                                        </a>
                                     </li>    
                                 </ul>
                             </td>
