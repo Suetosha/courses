@@ -3,6 +3,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 
 from courses_apps.courses.models import Course
+from courses_apps.tests.models import ControlTest
 from courses_apps.users.models import User, Group
 from courses_apps.utils.generate_username import generate_username
 from courses_apps.utils.generate_password import generate_password
@@ -16,11 +17,9 @@ class UserLoginForm(AuthenticationForm):
     password = forms.CharField(label='Пароль', widget=forms.PasswordInput(attrs={
         'class': "form-control", 'placeholder': "Введите пароль"}))
 
-
     class Meta:
         model = User
         fields = ('username', 'password')
-
 
 
 # Форма для изменения пароля в профиле пользователя, остальные поля доступны только для чтения
@@ -49,7 +48,6 @@ class UserProfileForm(forms.ModelForm):
         'class': "form-control", 'readonly': 'readonly'
     }))
 
-
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.user = user
@@ -68,7 +66,6 @@ class UserProfileForm(forms.ModelForm):
                 self.fields.pop("group_number", None)
                 self.fields.pop("year", None)
 
-
     def clean(self):
         cleaned_data = super().clean()
         password1 = cleaned_data.get("password1")
@@ -78,7 +75,6 @@ class UserProfileForm(forms.ModelForm):
             raise ValidationError("Пароли не совпадают")
 
         return cleaned_data
-
 
     def save(self, commit=True):
         user = self.user
@@ -98,7 +94,6 @@ class UserProfileForm(forms.ModelForm):
         if commit:
             user.save()
         return user
-
 
 
 # Форма создания подписки
@@ -122,6 +117,26 @@ class SubscriptionForm(forms.Form):
         self.fields['group'].queryset = Group.objects.all().order_by('number')
 
 
+# Форма создания подписки на контрольный тест
+class SubscriptionControlTestForm(forms.Form):
+    control_test = forms.ModelChoiceField(
+        label="Тест",
+        queryset=None,
+        required=True,
+        widget=forms.Select(attrs={'class': 'form-control', 'placeholder': 'Выберите тест'}
+                            ))
+    group = forms.ModelChoiceField(
+        label="Группа",
+        queryset=None,
+        required=True,
+        widget=forms.Select(attrs={'class': 'form-control', 'placeholder': 'Выберите группу'}
+                            ))
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['control_test'].queryset = ControlTest.objects.all().order_by('title')
+        self.fields['group'].queryset = Group.objects.all().order_by('number')
+
 
 # Форма для получения экселя группы
 class GroupSearchForm(forms.Form):
@@ -136,7 +151,6 @@ class GroupSearchForm(forms.Form):
 # Форма для добавления студентов путем загрузки экселя
 class ImportStudentsForm(forms.Form):
     excel_file = forms.FileField(label='Загрузите Excel файл с данными студентов', required=True)
-
 
 
 # Форма создания студента
@@ -178,7 +192,6 @@ class CreateStudentForm(forms.ModelForm):
         model = User
         fields = ['username', 'password', 'first_name', 'last_name']
 
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -187,7 +200,6 @@ class CreateStudentForm(forms.ModelForm):
 
         # Генерация пароля
         self.fields['password'].initial = generate_password()
-
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -235,11 +247,9 @@ class CreateTeacherForm(forms.ModelForm):
         widget=forms.TextInput(attrs={'class': "form-control py-4", 'placeholder': "Введите фамилию"})
     )
 
-
     class Meta:
         model = User
         fields = ['username', 'password1', 'first_name', 'last_name']
-
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -249,7 +259,6 @@ class CreateTeacherForm(forms.ModelForm):
 
         # Генерация пароля
         self.fields['password1'].initial = generate_password()
-
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -266,5 +275,3 @@ class CreateTeacherForm(forms.ModelForm):
             user.save()
 
         return user
-
-

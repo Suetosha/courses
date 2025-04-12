@@ -27,6 +27,18 @@ class CreateTaskForm(forms.ModelForm):
         })
     )
 
+# Форма создания задания для контрольного теста
+class CreateControlTaskForm(CreateTaskForm):
+    class Meta(CreateTaskForm.Meta):
+        fields = CreateTaskForm.Meta.fields + ['points']
+
+    points = forms.ChoiceField(
+        label="Баллы за задание",
+        choices=[(i, str(i)) for i in range(1, 6)],
+        widget=forms.Select(attrs={'class': 'form-select mt-1', 'style': 'width: 100px;'}),
+        initial=1
+    )
+
 
 # Форма для ответа
 class AnswerTestForm(forms.ModelForm):
@@ -68,6 +80,7 @@ AnswerFormUpdateSet = inlineformset_factory(
     fields=['text', 'is_correct'],
     extra=0,
 )
+
 
 # Форма создания теста
 class CreateTestForm(forms.ModelForm):
