@@ -36,7 +36,9 @@
         {% endif %}
         
         {% if request.user.role == "teacher" or request.user.is_superuser %}
-                        
+            <ul class="nav me-auto">
+              <li class="nav-item"><a href="{% url 'tests:control_tests_list' %}" class="nav-link link-dark px-2 active">Контрольное тестирование</a></li>
+            </ul>                
             <ul class="nav me-auto">
               <li class="nav-item"><a href="{% url 'courses:courses_list' %}" class="nav-link link-dark px-2 active">Курсы</a></li>
             </ul>
