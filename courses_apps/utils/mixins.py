@@ -4,7 +4,7 @@ from django.contrib import messages
 
 from courses_apps.courses.models import Course, Chapter
 from courses_apps.tests.models import Test
-from courses_apps.users.models import Subscription, ChapterProgress
+from courses_apps.users.models import CourseSubscription, ChapterProgress
 
 
 class TitleMixin:
@@ -23,7 +23,7 @@ class SubscriptionRequiredMixin:
         course_id = kwargs.get("course_id")
         course = Course.objects.filter(id=course_id).first()
 
-        if not course or not Subscription.objects.filter(course=course).exists():
+        if not course or not CourseSubscription.objects.filter(course=course).exists():
             messages.error(request, "У вас нет доступа к этому курсу")
             return redirect("courses:home")
 
