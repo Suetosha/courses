@@ -14,7 +14,7 @@ from django.views.generic import TemplateView, ListView, FormView, UpdateView, D
 from courses_apps.courses.forms import *
 from courses_apps.courses.models import *
 from courses_apps.tests.models import *
-from courses_apps.users.models import Subscription, ChapterProgress, TaskProgress
+from courses_apps.users.models import CourseSubscription, ChapterProgress, TaskProgress
 from courses_apps.utils.compiler import run_code
 from courses_apps.utils.mixins import TitleMixin, RedirectTeacherMixin, RedirectStudentMixin, SubscriptionRequiredMixin, \
     ChapterAccessMixin
@@ -55,7 +55,7 @@ class CourseTemplateView(LoginRequiredMixin, RedirectTeacherMixin, SubscriptionR
 
         course = Course.objects.get(id=kwargs["course_id"])
         chapters = Chapter.objects.filter(course=course).order_by("id")
-        subscription = Subscription.objects.get(user=request.user, course=course)
+        subscription = CourseSubscription.objects.get(user=request.user, course=course)
 
         for chapter in chapters:
             test = Test.objects.filter(chapter=chapter).first()
@@ -120,7 +120,7 @@ class ChapterTemplateView(LoginRequiredMixin, RedirectTeacherMixin, ChapterAcces
         chapter_id = kwargs["chapter_id"]
 
         chapter = Chapter.objects.get(id=chapter_id)
-        subscription = Subscription.objects.get(user=request.user, course=course_id)
+        subscription = CourseSubscription.objects.get(user=request.user, course=course_id)
 
         # Создаем или получаем прогресс по главе
         chapter_progress, _ = ChapterProgress.objects.get_or_create(
