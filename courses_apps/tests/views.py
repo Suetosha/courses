@@ -241,7 +241,7 @@ class ControlTestListView(TitleMixin, LoginRequiredMixin, ListView, RedirectStud
                 group_year=F('user__groups__year'),
                 group_number=F('user__groups__number')
             )
-            .order_by('-control_test__title', 'group_number', 'group_year')
+            .order_by('control_test__title', 'group_number', 'group_year', 'user__last_name', 'user__first_name')
             .distinct()
         )
 
@@ -285,10 +285,25 @@ class ViewControlTestView(TitleMixin, TemplateView, RedirectStudentMixin, LoginR
         context = super().get_context_data(**kwargs)
         control_test_id = self.kwargs.get("control_test_id")
         control_test = get_object_or_404(ControlTest, id=control_test_id)
+
+        context['form'] = ControlTestTitleForm(instance=control_test)
         context['control_test'] = control_test
         context['tasks'] = Task.objects.filter(controltesttask__control_test=control_test)
         return context
 
+    def post(self, request, *args, **kwargs):
+        control_test_id = self.kwargs.get("control_test_id")
+        control_test = get_object_or_404(ControlTest, id=control_test_id)
+        form = ControlTestTitleForm(request.POST, instance=control_test)
+
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Вы успешно обновили название контрольного теста")
+            return redirect('tests:view_control_test', control_test_id=control_test_id)
+
+        context = self.get_context_data(**kwargs)
+        context['form'] = form
+        return self.render_to_response(context)
 
 # Страница по добавлению задания в контрольный тест
 class AddTaskToControlTestView(TitleMixin, SuccessMessageMixin, FormView, RedirectStudentMixin, LoginRequiredMixin):
@@ -388,3 +403,12 @@ class ControlTaskUpdateView(TitleMixin, UpdateView, RedirectStudentMixin, LoginR
         context['form'] = task_form
         context['answer_formset'] = answer_formset
         return self.render_to_response(context)
+
+
+class ControlTaskDeleteView(LoginRequiredMixin, SuccessMessageMixin, DeleteView):
+    model = Task
+    success_message = 'Задание успешно удалено'
+
+    def get_success_url(self):
+        control_test_id = self.object.controltesttask_set.first().control_test.id
+        return reverse_lazy('tests:view_control_test', kwargs={'control_test_id': control_test_id})
