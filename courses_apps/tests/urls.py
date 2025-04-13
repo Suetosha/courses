@@ -36,4 +36,13 @@ urlpatterns = [
     # Удаление задания в контрольном тесте
     path('delete_control_task/<int:pk>/', ControlTaskDeleteView.as_view(), name='delete_control_task'),
 
+    # Список контрольных тестов для студента
+    path('control_tests_student/', StudentControlTestListView.as_view(), name='control_tests'),
+
+    # Решение контрольного теста
+    path('control_test/<int:pk>/fill/', FillControlTestView.as_view(), name='fill_control_test'),
+
+    # Отправка выполненного теста на проверку
+    path('control_test/<int:pk>/submit/', FillControlTestView.as_view(), name='submit_control_test'),
+
 ]
