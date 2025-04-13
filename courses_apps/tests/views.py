@@ -241,7 +241,7 @@ class ControlTestListView(TitleMixin, LoginRequiredMixin, ListView, RedirectStud
                 group_year=F('user__groups__year'),
                 group_number=F('user__groups__number')
             )
-            .order_by('-control_test__title', '-group_number', '-group_year')
+            .order_by('-control_test__title', 'group_number', 'group_year')
             .distinct()
         )
 

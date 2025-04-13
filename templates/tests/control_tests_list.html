@@ -98,8 +98,13 @@
                 </thead>
                 <tbody>
                     {% for sub in subscriptions %}
+                        {% ifchanged sub.control_test.title %}
+                            <tr>
+                                <td colspan="4" class="fw-bold bg-light">{{ sub.control_test.title }}</td>
+                            </tr>
+                        {% endifchanged %}
                         <tr>
-                            <td>{{ sub.control_test.title }}</td>
+                            <td></td>
                             <td>
                                 {% if sub.group_year and sub.group_number %}
                                     {{ sub.group_number }} группа - {{ sub.group_year }} год
@@ -115,7 +120,7 @@
                             <td colspan="4" class="text-center text-muted">Подписки на тесты отсутствуют</td>
                         </tr>
                     {% endfor %}
-                </tbody>
+            </tbody>
             </table>
         </div>
     </div>
