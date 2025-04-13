@@ -5,6 +5,11 @@ from django.db import models
 
 from courses_apps.courses.models import Course, Chapter
 from courses_apps.tests.models import TestTask
+from django.contrib.auth.models import BaseUserManager
+
+class UserManager(BaseUserManager):
+    def get_by_natural_key(self, username):
+        return self.get(username=username)
 
 
 # Модель пользователей
@@ -23,7 +28,7 @@ class User(AbstractUser):
         blank=True
     )
 
-    objects: Type[models.Manager] = models.Manager()
+    objects = UserManager()
 
 
 # Модель группы

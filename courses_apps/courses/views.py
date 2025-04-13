@@ -32,7 +32,7 @@ class HomeTemplateView(LoginRequiredMixin, RedirectTeacherMixin, TitleMixin, Tem
         query = request.GET.get("query", "").strip()
         category_id = request.GET.get("category")
 
-        courses = Course.objects.filter(status="published", subscription__user=request.user)
+        courses = Course.objects.filter(status="published", coursesubscription__user=request.user)
         categories = Category.objects.all()
 
         if query:
