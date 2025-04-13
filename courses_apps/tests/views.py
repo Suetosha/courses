@@ -5,6 +5,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.core.files.storage import FileSystemStorage
 from django.db.models import Prefetch, F
+from django.http import HttpResponseRedirect
 from django.shortcuts import redirect, get_object_or_404
 from django.urls import reverse_lazy
 from django.views.generic import ListView, UpdateView, DeleteView, CreateView, FormView, TemplateView
@@ -16,7 +17,9 @@ from courses_apps.users.forms import SubscriptionControlTestForm
 from courses_apps.users.models import ControlTestSubscription, User
 from courses_apps.utils.add_tasks_excel import import_tasks_from_excel
 
+
 from courses_apps.utils.mixins import TitleMixin, RedirectStudentMixin
+from courses_apps.utils.test_result import calculate_test_result
 
 
 #                                   Задания
@@ -365,7 +368,7 @@ class ControlTestDeleteView(LoginRequiredMixin, RedirectStudentMixin, DeleteView
 
 
 # Страница редактирования задания в контрольном тесте
-class ControlTaskUpdateView(TitleMixin, UpdateView, RedirectStudentMixin, LoginRequiredMixin):
+class ControlTaskUpdateView(TitleMixin, UpdateView, RedirectStudentMixin, LoginRequiredMixin, SuccessMessageMixin):
     title = 'Редактирование контрольного задания'
     template_name = "tests/update_control_task.html"
     form_class = CreateControlTaskForm
@@ -375,7 +378,9 @@ class ControlTaskUpdateView(TitleMixin, UpdateView, RedirectStudentMixin, LoginR
         control_task_id = self.kwargs.get("pk")
         control_test_task = get_object_or_404(ControlTestTask, task_id=control_task_id)
         control_test_id = control_test_task.control_test.id
+        messages.success(self.request, "Контрольное задание успешно обновлено.")
         return reverse_lazy("tests:view_control_test", kwargs={"control_test_id": control_test_id})
+
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -412,3 +417,96 @@ class ControlTaskDeleteView(LoginRequiredMixin, SuccessMessageMixin, DeleteView)
     def get_success_url(self):
         control_test_id = self.object.controltesttask_set.first().control_test.id
         return reverse_lazy('tests:view_control_test', kwargs={'control_test_id': control_test_id})
+    
+
+#                         Контрольные тесты для студента    
+
+# Главная страница с контрольными тестами
+class StudentControlTestListView(LoginRequiredMixin, TitleMixin, ListView):
+    title = "Мои контрольные тесты"
+    template_name = "tests/student_control_tests.html"
+    model = ControlTest
+    context_object_name = 'student_control_tests'
+
+    def get_queryset(self):
+        control_tests = ControlTest.objects.filter(
+            controltestsubscription__user=self.request.user
+        ).distinct()
+        return control_tests
+
+
+# Страница с решением контрольного теста
+class FillControlTestView(LoginRequiredMixin, TemplateView):
+    template_name = "tests/fill_control_test.html"
+    title = "Решение контрольного теста"
+    form_classes = ControlTaskAnswerForm
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        control_test = get_object_or_404(ControlTest, pk=self.kwargs['pk'])
+
+        # Получаем задания контрольного теста
+        tasks = Task.objects.filter(controltesttask__control_test=control_test)
+
+        # Создаём формы для каждого задания
+        task_forms = []
+        for task in tasks:
+            answers = Answer.objects.filter(task=task)
+            form = self.form_classes(task=task, answers=answers)
+            task_forms.append((task, form))
+
+        context["control_test"] = control_test
+        context["task_forms"] = task_forms
+        return context
+
+    def post(self, request, *args, **kwargs):
+        control_test = get_object_or_404(ControlTest, pk=self.kwargs['pk'])
+        tasks = Task.objects.filter(controltesttask__control_test=control_test)
+
+        user_answers = {}
+        task_errors = []
+
+        for task in tasks:
+            task_id = str(task.id)
+            # Получение ответов для формы
+            answers = Answer.objects.filter(task=task)
+            form = self.form_classes(data=request.POST, task=task, answers=answers)
+
+            if form.is_valid():
+                # print("form.data", form.data)
+                if task.is_multiple_choice:
+                    # Для проверки множественного выбора
+                    user_answers[task_id] = form.data.getlist(task_id, None)
+                else:
+                    user_answers[task_id] = form.data.get(task_id, None)
+            else:
+                task_errors.append(task)
+
+        # Если есть ошибки в данных формы
+        if task_errors:
+            messages.error(request, "Некоторые ответы заполнены некорректно. Попробуйте снова.")
+            return self.render_to_response(self.get_context_data())
+
+        # Подсчет результатов
+        results = calculate_test_result(tasks, user_answers)
+
+        # Получение результатов проверки
+        score = results["total_score"]
+        max_score = results["max_score"]
+        score_percent = results["score_percent"]
+        final_result = results["result"]
+
+        # Передача сообщения пользователю
+        messages.success(
+            request,
+            f"Тест завершён! Вы набрали {score} из {max_score} баллов "
+            f"({score_percent:.2f}%). Итоговая оценка: {final_result}."
+        )
+
+        subscription = ControlTestSubscription.objects.filter(user=request.user, control_test=control_test).first()
+        subscription.result = score_percent
+        subscription.is_completed = True
+        subscription.save(update_fields=['result'])
+
+        # Редирект на страницу завершения
+        return HttpResponseRedirect(reverse_lazy('tests:control_tests'))
