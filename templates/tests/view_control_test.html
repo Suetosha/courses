@@ -4,30 +4,46 @@
     <div class="container mt-5">
         <h2 class="text-center text">Контрольный тест</h2>
     
-        <div class="card mt-4 d-flex justify-content-center">
+        <div class="card mt-4">
             <div class="card-body">
-                <h4 class="card-title text-center">{{ control_test.title }}</h4>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="id_title" class="form-label fw-bold">Название теста:</label>
+                        {{ form.title }}
+                    </div>
+                    <div class="text-center mt-3">
+                        <button type="submit" class="btn btn-primary">Сохранить</button>
+                    </div>
+                </form>
             </div>
         </div>
+    
         <div class="row g-3 justify-content-center mt-5">
-            {% for task in tasks %}
-                <div class="col-3">
-                    <div class="card text-center h-100">
-                        <a href="{% url 'tests:update_control_task' task.id %}" class="stretched-link"></a>
-                        <div class="card-body d-flex align-items-center justify-content-center">
-                            <h4 class="card-title">{{ task.question }}</h4>
+            <div class="col-12">
+                <h3 class="text-center">Список заданий</h3>
+            </div>
+            {% if tasks %}
+                {% for task in tasks %}
+                    <div class="col-3">
+                        <div class="card text-center h-100">
+                            <a href="{% url 'tests:update_control_task' task.id %}" class="stretched-link"></a>
+                            <div class="card-body d-flex align-items-center justify-content-center">
+                                <h4 class="card-title">{{ task.question }}</h4>
+                            </div>
                         </div>
                     </div>
+                {% endfor %}
+            {% else %}
+                <div class="col-12 text-center">
+                    <p class="text-muted">Задания отсутствуют.</p>
                 </div>
-            {% endfor %}
+            {% endif %}
         </div>
-
-    
         <div class="d-flex justify-content-center mt-5">
             <a href="{% url 'tests:create_control_task' control_test.id %}" class="btn btn-primary">Добавить задание</a>    
         </div>
-        
-        
+
         <div class="text-center mt-5">
             <a href="{% url 'tests:control_tests_list' %}" class="btn btn-secondary">
                 ← Вернуться к списку
