@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center mb-5">{{ control_test.title }}</h1>
+    <form method="post" action="{% url 'tests:submit_control_test' control_test.id %}">
+        {% csrf_token %}
+        <div class="row">
+            {% for task, form in task_forms %}
+                <div class="col-md-12 mb-4">
+                    <div class="card p-3">
+                        <h5 class="card-title">{{ task.question }}</h5>
+                        <div class="card-body">
+                            {% for field in form %}
+                                <div class="form-group">
+                                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                    {{ field }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        <div class="text-center mt-4">
+            <button type="submit" class="btn btn-primary btn-lg">Отправить</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
