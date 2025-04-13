@@ -110,3 +110,18 @@ class CreateTestForm(forms.ModelForm):
 # Форма для загрузки заданий через эксель форму
 class ImportTasksForm(forms.Form):
     excel_file = forms.FileField()
+
+
+# Форма для изменения названия контрольного теста
+class ControlTestTitleForm(forms.ModelForm):
+    class Meta:
+        model = ControlTest
+        fields = ['title']
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Введите новое название теста'}),
+        }
+        labels = {
+            'title': 'Название контрольного теста',
+        }
+
+
