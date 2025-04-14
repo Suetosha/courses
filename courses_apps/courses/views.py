@@ -8,7 +8,7 @@ from django.shortcuts import redirect, get_object_or_404
 from django.urls import reverse_lazy
 from django.db.models import Exists, OuterRef
 from django.views import View
-
+from django.db import transaction
 from django.views.generic import TemplateView, ListView, FormView, UpdateView, DeleteView, CreateView
 
 from courses_apps.courses.forms import *
@@ -133,7 +133,6 @@ class ChapterTemplateView(LoginRequiredMixin, RedirectTeacherMixin, ChapterAcces
             chapter_progress.is_completed = True
             chapter_progress.save()
 
-
         # Добавляем к каждому заданию флаг is_completed=True, если он есть в TaskProgress
         tasks_in_chapter = Task.objects.filter(
             tests__chapter_id=chapter_id
@@ -210,7 +209,7 @@ class TaskTemplateView(LoginRequiredMixin, RedirectTeacherMixin, TitleMixin, Tem
             answers = context["answers"]
             correct_answers = answers.filter(is_correct=True) if answers else None
 
-            if current_task.is_multiple_choice:
+            if current_task.is_multiple_choice or len(correct_answers) == 1:
                 selected_answers = [str(answer.id) for answer in correct_answers] if correct_answers else []
                 form = TaskAnswerForm(task=current_task, answers=answers, initial={"answers": selected_answers})
             else:
@@ -247,7 +246,7 @@ class TaskTemplateView(LoginRequiredMixin, RedirectTeacherMixin, TitleMixin, Tem
                 correct_answer = answers.first().text
 
             # Если задания с множественным выбором, то лучше сравнивать с помощью айди
-            elif task.is_multiple_choice:
+            elif task.is_multiple_choice or (len(answers) and not task.is_text_input == 1):
                 correct_answer = [str(a.id) for a in answers]
                 correct_answer = correct_answer[0] if len(correct_answer) == 1 else correct_answer
 
@@ -273,7 +272,6 @@ class TaskTemplateView(LoginRequiredMixin, RedirectTeacherMixin, TitleMixin, Tem
 
             context = self.get_context_data(form=form, **kwargs)
             return self.render_to_response(context)
-
 
     @staticmethod
     def _update_chapter_progress(request, **kwargs):
@@ -387,6 +385,68 @@ class CourseDeleteView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, Suc
     model = Course
     success_url = reverse_lazy('courses:courses_list')
     success_message = "Курс успешно удален"
+
+
+# Дублирование курса
+class CourseCopyView(LoginRequiredMixin, RedirectStudentMixin, View):
+    def post(self, request, *args, **kwargs):
+        course_id = kwargs.get("pk")
+        course = get_object_or_404(Course, id=course_id)
+
+        try:
+            # Открываем транзакцию, чтобы все действия произошли или откатились вместе
+            with transaction.atomic():
+
+                new_course = Course.objects.create(
+                    title=f"Копия {course.title}",
+                    description=course.description,
+                    status=course.status,
+                    category=course.category,
+                )
+
+                # Копируем связанные главы и их содержимое
+                chapters = Chapter.objects.filter(course=course)
+                for chapter in chapters:
+                    # Создаём новую главу
+                    new_chapter = Chapter.objects.create(
+                        title=chapter.title,
+                        course=new_course
+                    )
+
+                    # Копируем содержимое главы, если оно есть
+                    content = Content.objects.filter(chapter=chapter).first()
+                    if content:
+                        Content.objects.create(
+                            text=content.text,
+                            video=content.video,
+                            files=content.files,
+                            chapter=new_chapter
+                        )
+
+                    # Копируем связанные тесты
+                    tests = Test.objects.filter(chapter=chapter)
+                    for test in tests:
+                        new_test = Test.objects.create(
+                            chapter=new_chapter
+                        )
+
+                        # Копируем связанные задачи (TestTask)
+                        test_tasks = TestTask.objects.filter(test=test)
+                        for test_task in test_tasks:
+                            # Копируем задачу (Task)
+                            original_task = test_task.task
+
+                            # Создаём связь между новым тестом и новой задачей
+                            TestTask.objects.create(
+                                test=new_test,
+                                task=original_task
+                            )
+
+            messages.success(request, f"Курс '{course.title}' был успешно скопирован!")
+            return redirect("courses:courses_list")
+        except Exception as e:
+            messages.error(request, f"Ошибка копирования курса: {str(e)}")
+            return redirect("courses:courses_list")
 
 
 #                               Категории - функционал для преподавателя
