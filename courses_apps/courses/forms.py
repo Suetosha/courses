@@ -33,7 +33,7 @@ class TaskAnswerForm(forms.Form):
             self.fields["answers"] = compiler_form.fields["answer"]
 
 
-        elif task.is_multiple_choice:
+        else:
             choices = [(answer.id, answer.text) for answer in answers]
 
             correct_count = answers.filter(is_correct=True).count()
@@ -45,6 +45,7 @@ class TaskAnswerForm(forms.Form):
                     widget=forms.RadioSelect,
                     label="Выберите один ответ",
                 )
+
             else:
                 # Чекбоксы, если несколько правильных ответов
                 self.fields["answers"] = forms.MultipleChoiceField(
