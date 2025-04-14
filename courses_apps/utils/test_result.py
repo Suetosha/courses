@@ -59,9 +59,9 @@ def calculate_test_result(tasks, user_answers):
     score_percent = int((total_score / max_score) * 100) if max_score > 0 else 0
 
     # Оценка на основе процента
-    if score_percent <= 50:
+    if score_percent < 50:
         result = "Не сдал"
-    elif 51 <= score_percent <= 60:
+    elif 50 <= score_percent <= 60:
         result = "Удовлетворительно"
     elif 61 <= score_percent <= 85:
         result = "Хорошо"
@@ -69,8 +69,12 @@ def calculate_test_result(tasks, user_answers):
         result = "Отлично"
 
     return {
-        "total_score": total_score,  # Набранные баллы
-        "max_score": max_score,  # Максимально возможные баллы
-        "score_percent": score_percent,  # Процент успешности
-        "result": result  # Итог (текстовая оценка)
+        # Набранные баллы
+        "total_score": total_score,
+        # Максимально возможные баллы
+        "max_score": max_score,
+        # Процент успешности
+        "score_percent": score_percent,
+        # Итог (текстовая оценка)
+        "result": result
     }
