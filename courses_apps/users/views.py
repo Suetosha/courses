@@ -58,9 +58,9 @@ class UserProfileView(LoginRequiredMixin, TitleMixin, SuccessMessageMixin, Updat
             chapters_count = Chapter.objects.filter(course=course).count()
 
             chapter_progress = ChapterProgress.objects.filter(
-                coursesubscription__course=course,
+                subscription__course=course,
                 is_completed=True,
-                coursesubscription__user=self.request.user
+                subscription__user=self.request.user
             ).count()
 
             course.total_chapters = chapters_count
