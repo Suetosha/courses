@@ -69,7 +69,7 @@
                 {% for course in courses %}
                 <tr>
                     <td>{{ course.title }}</td>
-                    <td>{{ course.description|truncatechars:50 }}</td>
+                    <td>{{ course.description|truncatechars:40 }}</td>
                     <td>{{ course.get_status_display }}</td>
                     <td>{{ course.category.name }}</td>
                     <td class="text-center">
@@ -79,6 +79,13 @@
                         <a href="{% url 'courses:delete_course' course.id %}" class="text-danger">
                             🗑️
                         </a>
+
+                        <form action="{% url 'courses:course_copy' course.id %}" method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-link text-success p-0" title="Копировать курс">
+                                📋
+                            </button>
+                        </form>
                     </td>
                 </tr>
                 {% endfor %}
