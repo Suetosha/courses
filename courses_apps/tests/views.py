@@ -17,7 +17,6 @@ from courses_apps.users.forms import SubscriptionControlTestForm
 from courses_apps.users.models import ControlTestSubscription, User
 from courses_apps.utils.add_tasks_excel import import_tasks_from_excel
 
-
 from courses_apps.utils.mixins import TitleMixin, RedirectStudentMixin
 from courses_apps.utils.test_result import calculate_test_result
 
@@ -94,7 +93,7 @@ class TaskCreateView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, Succe
 
             if len(answers) == 1 and not self.object.is_compiler:
                 self.object.is_text_input = True
-            elif len(answers) > 1:
+            elif len(answers) > 1 and sum(1 for answer in answers if answer.is_correct) > 1:
                 self.object.is_multiple_choice = True
 
             self.object.save()
@@ -308,6 +307,7 @@ class ViewControlTestView(TitleMixin, TemplateView, RedirectStudentMixin, LoginR
         context['form'] = form
         return self.render_to_response(context)
 
+
 # Страница по добавлению задания в контрольный тест
 class AddTaskToControlTestView(TitleMixin, SuccessMessageMixin, FormView, RedirectStudentMixin, LoginRequiredMixin):
     title = 'Добавление задания в контрольный тест'
@@ -342,10 +342,9 @@ class AddTaskToControlTestView(TitleMixin, SuccessMessageMixin, FormView, Redire
         if answer_formset.is_valid():
             self.object.save()
             answers = answer_formset.save(commit=False)
-
             if len(answers) == 1 and not self.object.is_compiler:
                 self.object.is_text_input = True
-            elif len(answers) > 1:
+            elif len(answers) > 1 and sum(1 for answer in answers if answer.is_correct) > 1:
                 self.object.is_multiple_choice = True
 
             self.object.save()
@@ -380,7 +379,6 @@ class ControlTaskUpdateView(TitleMixin, UpdateView, RedirectStudentMixin, LoginR
         control_test_id = control_test_task.control_test.id
         messages.success(self.request, "Контрольное задание успешно обновлено.")
         return reverse_lazy("tests:view_control_test", kwargs={"control_test_id": control_test_id})
-
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -417,12 +415,12 @@ class ControlTaskDeleteView(LoginRequiredMixin, SuccessMessageMixin, DeleteView)
     def get_success_url(self):
         control_test_id = self.object.controltesttask_set.first().control_test.id
         return reverse_lazy('tests:view_control_test', kwargs={'control_test_id': control_test_id})
-    
+
 
 #                         Контрольные тесты для студента    
 
 # Главная страница с контрольными тестами
-class StudentControlTestListView(LoginRequiredMixin, TitleMixin, ListView):
+class StudentControlTestListView(TitleMixin, LoginRequiredMixin, ListView):
     title = "Мои контрольные тесты"
     template_name = "tests/student_control_tests.html"
     model = ControlTest
@@ -434,9 +432,15 @@ class StudentControlTestListView(LoginRequiredMixin, TitleMixin, ListView):
         ).distinct()
         return control_tests
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["control_test_subscription"] = ControlTestSubscription.objects.filter(user=self.request.user)
+
+        return context
+
 
 # Страница с решением контрольного теста
-class FillControlTestView(LoginRequiredMixin, TemplateView):
+class FillControlTestView(TitleMixin, LoginRequiredMixin, TemplateView):
     template_name = "tests/fill_control_test.html"
     title = "Решение контрольного теста"
     form_classes = ControlTaskAnswerForm
@@ -505,8 +509,9 @@ class FillControlTestView(LoginRequiredMixin, TemplateView):
 
         subscription = ControlTestSubscription.objects.filter(user=request.user, control_test=control_test).first()
         subscription.result = score_percent
-        subscription.is_completed = True
-        subscription.save(update_fields=['result'])
+        if score_percent >= 50:
+            subscription.is_completed = True
+        subscription.save()
 
         # Редирект на страницу завершения
         return HttpResponseRedirect(reverse_lazy('tests:control_tests'))
