@@ -21,7 +21,8 @@ urlpatterns = [
     path("create_course/", CourseCreateView.as_view(), name="create_course"),
     path("edit_course/<int:pk>", CourseUpdateView.as_view(), name="edit_course"),
     path("delete_course/<int:pk>", CourseDeleteView.as_view(), name="delete_course"),
-    path("courses/<int:pk>/copy/", CourseCopyView.as_view(), name="course_copy"),
+    path("copy/<int:pk>", CourseCopyView.as_view(), name="course_copy"),
+
 
     #                     Категории
     path("create_category/", CategoryCreateView.as_view(), name="create_category"),
@@ -29,5 +30,6 @@ urlpatterns = [
 
     #                     Главы
     path("edit_chapter/<int:pk>", ChapterUpdateView.as_view(), name="edit_chapter"),
-
+    path('courses/<int:course_id>/chapters/create/', ChapterCreateView.as_view(), name='create_chapter'),
+    path('chapters/<int:pk>/delete/', ChapterDeleteView.as_view(), name='delete_chapter'),
 ]

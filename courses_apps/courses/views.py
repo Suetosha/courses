@@ -472,7 +472,7 @@ class CategoryDeleteView(LoginRequiredMixin, RedirectStudentMixin, DeleteView):
 
 #                              Главы - функционал для преподавателя
 
-# Создание глав
+# Редактирование глав
 class ChapterUpdateView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, SuccessMessageMixin, TemplateView):
     title = 'Редактирование главы'
     template_name = 'courses/teachers/update_chapter.html'
@@ -534,6 +534,34 @@ class ChapterUpdateView(LoginRequiredMixin, RedirectStudentMixin, TitleMixin, Su
 
         return self.render_to_response(context)
 
+
+# Создание главы
+class ChapterCreateView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        course = get_object_or_404(Course, id=self.kwargs['course_id'])  # Ищем курс
+        title = request.POST.get('title')  # Забираем название главы из формы
+
+        if title:
+            chapter = Chapter.objects.create(course=course, title=title)
+
+            messages.success(request, f'Глава "{chapter.title}" была успешно создана.')
+
+            return redirect(reverse_lazy('courses:edit_chapter', kwargs={'pk': chapter.id}))
+
+        messages.error(request, 'Необходимо указать название главы.')
+        return redirect(request.META.get('HTTP_REFERER', reverse_lazy('courses:edit_course', kwargs={'pk': course.id})))
+
+# Удаление главы
+class ChapterDeleteView(DeleteView):
+    model = Chapter
+
+    def get_success_url(self):
+        course_id = self.object.course.id
+        messages.success(self.request, f'Глава "{self.object.title}" успешно удалена.')
+        return reverse_lazy('courses:edit_course', kwargs={'pk': course_id})
+
+    def get(self, request, *args, **kwargs):
+        return self.post(request, *args, **kwargs)
 
 #                                Компилятор
 
